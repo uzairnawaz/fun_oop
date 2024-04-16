@@ -209,7 +209,13 @@ ASTNode* e1(Tokens t, int* curToken) {
             free(out);
             out = expression(t, curToken);
             break;
-        case IF:     // if we see if, while, else at e1, then it must be a var, not a keyword
+        /* 
+        if we see if, while, else at e1, then it must be a var, not a keyword
+        this handles cases like code that looks like the following:
+            test = nested - while - loops      
+        The code above is valid fun since "while" is treated as a variable with the default value of 0
+        */
+        case IF:     
             out->type = IDENTIFIER;
             out->identifier.start = "if";
             out->identifier.len = 2;
