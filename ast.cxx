@@ -636,7 +636,7 @@ void display(ASTNode* n, int depth) {
         "DIV",
         "MOD",
         "SHIFT_LEFT",
-        "SHIFT_RIGHT"
+        "SHIFT_RIGHT",
         "LESS_EQUAL",
         "GREATER_EQUAL",
         "LESS",
