@@ -6,6 +6,9 @@
 
 #include "ast.h"
 
+std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
+
+
 /*
  Provides an error message for debugging and ends program
 */
@@ -487,11 +490,18 @@ ASTNode* statement(Tokens t, int* curToken) {
         case IDENTIFIER: {
             out->type = ASSIGN;
             ASTNode* left = (ASTNode*)malloc(sizeof (ASTNode));
+            Slice type = {"", 0};
+            if (t.tokens[*curToken + 1].type == IDENTIFIER) {
+                // if the form is [TYPE] var_name = [VALUE]
+                type = t.tokens[*curToken].s;
+                *curToken += 1;
+            } 
             left->type = IDENTIFIER;
             left->numChildren = 0;
             left->identifier = t.tokens[*curToken].s;
             *curToken += 2; // skip past identifier and =
             ASTNode* right = expression(t, curToken);
+            varTypes.insert({left->identifier, type});
             setTwoChildren(out, left, right);
             break;
         }

@@ -1,6 +1,7 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unordered_map>
 #include "slice.h"
 
 typedef enum {
@@ -59,6 +60,7 @@ typedef struct ASTNode {
     Slice identifier;
 } ASTNode;
 
+extern std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);
