@@ -20,7 +20,7 @@ C_O_FILES=${addprefix $B/,${subst .c,.o,${C_FILES}}}
 LINK=${firstword ${patsubst %.cxx,${CXX},${CXX_FILES} ${patsubst %.c,${CC},${C_FILES}}}}
 LINK_FLAGS=
 
-FUN_FILES=${sort ${wildcard *.fun}}
+FUN_FILES=${sort ${wildcard testcases/*.fun}}
 TESTS=${subst .fun,.test,${FUN_FILES}}
 OK_FILES=${subst .fun,.ok,${FUN_FILES}}
 OUT_FILES=${subst .fun,.out,${FUN_FILES}}
@@ -74,4 +74,4 @@ ${OUT_FILES}: %.out : Makefile %.arm %.args
 
 clean:
 	rm -rf $B
-	rm -f *.diff *.result *.out *.time *.s *.arm
+	rm -f testcases/*.diff testcases/*.result testcases/*.out testcases/*.time testcases/*.s testcases/*.arm
