@@ -75,12 +75,12 @@ bool match(const char* current, const char* token) {
  This array is guanranteed to be tightly bound (no extra memory used).
 */
 Tokens tokenize(const char* program) {
-    static const char* TOKENS[] = {"(", ")", "{", "}", "fun", "while", "if", "else", "print",
+    static const char* TOKENS[] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
         "&", "||", ","};
-    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
+    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
         1, 2, 2, 1, 2, 1, 2, 1};
-    static const int NUM_TOKEN_TYPES = 28;
+    static const int NUM_TOKEN_TYPES = 30;
     static const int STARTING_NUM_TOKENS = 100;
 
     int size = STARTING_NUM_TOKENS;
@@ -507,6 +507,25 @@ ASTNode* statement(Tokens t, int* curToken) {
             setTwoChildren(out, l, r);
             break;
         }
+        case CLASS: {
+            out->type = CLASS;
+            ASTNode* name = (ASTNode*)malloc(sizeof (ASTNode));
+            name->type = IDENTIFIER;
+            name->identifier = t.tokens[*curToken + 1].s;
+            name->numChildren = 0;
+            ASTNode* parent = (ASTNode*)malloc(sizeof (ASTNode));
+            parent->type = IDENTIFIER;
+            parent->numChildren = 0;
+            if (t.tokens[*curToken + 2].type == EXTENDS) {
+                parent->identifier = t.tokens[*curToken + 3].s;
+                *curToken += 4;
+            } else {
+                parent->identifier = {"Object", 6};
+                *curToken += 2;
+            }
+            setThreeChildren(out, name, parent, block(t, curToken));
+            break;
+        }
         default:
             free(out);
             fail(curToken);
@@ -624,12 +643,14 @@ void ast_fold(ASTNode* ast) {
  Provides a text representation of the AST for debugging purposes
  Depth should be 0 on the initial call.
 */
-void display(ASTNode* n, int depth) {
-    static const char* names[32] = {
+void ast_display(ASTNode* n, int depth) {
+    static const char* names[34] = {
         "OPEN_PAREN",
         "CLOSE_PAREN",
         "OPEN_CURLY",
         "CLOSE_CURLY",
+        "CLASS",
+        "EXTENDS",
         "FUN",
         "WHILE",
         "IF",
@@ -657,7 +678,7 @@ void display(ASTNode* n, int depth) {
         "IDENTIFIER",
         "LITERAL",
         "FUNC_CALL",
-        "BLOCK"
+        "BLOCK",
     };
 
     for (int i = 0; i < depth; i++) {
@@ -674,10 +695,9 @@ void display(ASTNode* n, int depth) {
     printf("\n");
 
     for (int i = 0; i < n->numChildren; i++) {
-        display(n->children[i], depth + 1);
+        ast_display(n->children[i], depth + 1);
     }
 }
-
 
 /*
  Frees the AST from memory.

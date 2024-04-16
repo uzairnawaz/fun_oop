@@ -1,3 +1,4 @@
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include "slice.h"
@@ -7,6 +8,8 @@ typedef enum {
     CLOSE_PAREN,
     OPEN_CURLY,
     CLOSE_CURLY,
+    CLASS,
+    EXTENDS,
     FUN,
     WHILE,
     IF,
@@ -59,7 +62,7 @@ typedef struct ASTNode {
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);
-void display(ASTNode* n, int depth);
+void ast_display(ASTNode* n, int depth);
 void ast_fold(ASTNode* ast);
 
 ASTNode* expression(Tokens t, int* curToken);
