@@ -35,8 +35,10 @@ typedef enum {
     BIT_AND,
     LOG_OR,
     COMMA,
+    ACCESS,
     IDENTIFIER,
     LITERAL,
+    DECLARATION,
     FUNC_CALL,
     BLOCK,
 } ASTType;
@@ -61,6 +63,7 @@ typedef struct ASTNode {
 } ASTNode;
 
 extern std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
+extern std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);

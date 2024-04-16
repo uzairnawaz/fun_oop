@@ -1,12 +1,22 @@
 
 #include "compiler.h"
 
+
 /*
  Compiles the given fun program
  Compiled code is printed to stdout
 */
 void FunCompiler::compile(const char* program) {
     astRoot = ast_create(program);
+    /*
+    ast_display(astRoot, 0);
+    for (auto it=varTypes.begin(); it!=varTypes.end(); it++) {
+        slice_print(it->first);
+        printf(" ");
+        slice_print(it->second);
+        printf("\n");
+    }*/
+
     preprocess();    
 
     printf("main:\n");
@@ -83,6 +93,14 @@ void FunCompiler::loadBinaryChildrenReg(ASTNode* ast) {
 */
 void FunCompiler::compile_ast(ASTNode* ast) {
     switch (ast->type) {
+        case DECLARATION: {
+            Slice type = ast->children[0];
+            ASTNode* classNode = classNames.at(type); 
+
+            // printf("    mov x0, %d\n", size);:w
+            printf("    bl malloc\n");
+            break;
+        }
         case FUN: {
             int labelNum = labelCounter++; 
             printf("    b func%d_end\n", labelNum);

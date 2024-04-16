@@ -7,6 +7,7 @@
 #include "ast.h"
 
 std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
+std::unordered_map<Slice, ASTNode*> classNames;
 
 
 /*
@@ -80,10 +81,10 @@ bool match(const char* current, const char* token) {
 Tokens tokenize(const char* program) {
     static const char* TOKENS[] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ","};
+        "&", "||", ",", "."};
     static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
-        1, 2, 2, 1, 2, 1, 2, 1};
-    static const int NUM_TOKEN_TYPES = 30;
+        1, 2, 2, 1, 2, 1, 2, 1, 1};
+    static const int NUM_TOKEN_TYPES = 31;
     static const int STARTING_NUM_TOKENS = 100;
 
     int size = STARTING_NUM_TOKENS;
@@ -251,11 +252,31 @@ ASTNode* e1(Tokens t, int* curToken) {
     return out;
 }
 
+// access 
+ASTNode* e1_5(Tokens t, int* curToken) {
+    ASTNode* left = e1(t, curToken);
+    ASTNode* out = left;
+    while (*curToken < t.size) {
+        switch (t.tokens[*curToken].type) {
+            case ACCESS:
+                out = (ASTNode*)malloc(sizeof (ASTNode));
+                out->type = t.tokens[*curToken].type; 
+                break;
+            default:
+                return out; 
+        }
+        *curToken += 1;
+        setTwoChildren(out, left, e1(t, curToken));
+        left = out;
+    }
+    return out;
+}
+
 // f(it)
 ASTNode* e2(Tokens t, int* curToken) {
-    ASTNode* n = e1(t, curToken);
+    ASTNode* n = e1_5(t, curToken);
     ASTNode* out = n;
-    while (*curToken < t.size && t.tokens[*curToken].type == OPEN_PAREN) {
+    while (*curToken < t.size && t.tokens[*curToken].type == FUNC_CALL) {
         out = (ASTNode*)malloc(sizeof (ASTNode));
         out->type = FUNC_CALL;
         *curToken += 1; // consume open paren
@@ -266,9 +287,29 @@ ASTNode* e2(Tokens t, int* curToken) {
     return out;
 }
 
+// accessing attribute of returned object
+ASTNode* e2_5(Tokens t, int* curToken) {
+    ASTNode* left = e2(t, curToken);
+    ASTNode* top = left;
+    while (*curToken < t.size) {
+        switch (t.tokens[*curToken].type) {
+            case ACCESS:
+                top = (ASTNode*)malloc(sizeof (ASTNode));
+                top->type = t.tokens[*curToken].type; 
+                break;
+            default:
+                return top; 
+        }
+        *curToken += 1;
+        setTwoChildren(top, left, e2(t, curToken));
+        left = top
+    }
+    return out;
+}
+
 // * / % (Left)
 ASTNode* e3(Tokens t, int* curToken) {
-    ASTNode* left = e2(t, curToken);
+    ASTNode* left = e2_5(t, curToken);
     ASTNode* top = left; 
     while (*curToken < t.size) {
         switch (t.tokens[*curToken].type) {
@@ -488,20 +529,38 @@ ASTNode* statement(Tokens t, int* curToken) {
             break;
         }
         case IDENTIFIER: {
-            out->type = ASSIGN;
             ASTNode* left = (ASTNode*)malloc(sizeof (ASTNode));
-            Slice type = {"", 0};
             if (t.tokens[*curToken + 1].type == IDENTIFIER) {
                 // if the form is [TYPE] var_name = [VALUE]
-                type = t.tokens[*curToken].s;
+
+                varTypes.insert({t.tokens[*curToken + 1].s, t.tokens[*curToken].s});
+                if (t.tokens[*curToken + 2].type != ASSIGN) {
+                    //we are declaring an object: [TYPE] var_name
+                    out->type = DECLARATION;
+                    ASTNode* type = (ASTNode*)malloc(sizeof (ASTNode));
+                    type->type = IDENTIFIER;
+                    type->numChildren = 0;
+                    type->identifier = t.tokens[*curToken].s;
+                    
+                    ASTNode* varName = (ASTNode*)malloc(sizeof (ASTNode));
+                    varName->type = IDENTIFIER;
+                    varName->numChildren = 0;
+                    varName->identifier = t.tokens[*curToken + 1].s;
+
+                    setTwoChildren(out, type, varName);
+                    break;
+                }
                 *curToken += 1;
-            } 
+            } else {
+                varTypes.insert({t.tokens[*curToken].s, {"int", 3}});
+            }
+            
+            out->type = ASSIGN;
             left->type = IDENTIFIER;
             left->numChildren = 0;
             left->identifier = t.tokens[*curToken].s;
             *curToken += 2; // skip past identifier and =
             ASTNode* right = expression(t, curToken);
-            varTypes.insert({left->identifier, type});
             setTwoChildren(out, left, right);
             break;
         }
@@ -654,7 +713,7 @@ void ast_fold(ASTNode* ast) {
  Depth should be 0 on the initial call.
 */
 void ast_display(ASTNode* n, int depth) {
-    static const char* names[34] = {
+    static const char* names[35] = {
         "OPEN_PAREN",
         "CLOSE_PAREN",
         "OPEN_CURLY",
@@ -689,6 +748,7 @@ void ast_display(ASTNode* n, int depth) {
         "LITERAL",
         "FUNC_CALL",
         "BLOCK",
+        "ACCESS"
     };
 
     for (int i = 0; i < depth; i++) {
