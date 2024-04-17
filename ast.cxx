@@ -3,7 +3,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-
 #include "ast.h"
 
 std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
@@ -112,13 +111,84 @@ Tokens tokenize(const char* program) {
         }
 
         if (!foundToken) {
-            tokens[idx].type = IDENTIFIER;
-            tokens[idx].s = consume_identifier(&program);
-            if (tokens[idx].s.len == 0) {
-                tokens[idx].type = LITERAL;
-                tokens[idx].literal = consume_literal(&program);
+            // is it the include directive?
+            if (program[0] == '#' && program[1] == 'i' && program[2] == 'n' && program[3] == 'c' && program[4] == 'l' && program[5] == 'u' && program[6] == 'd' && program[7] == 'e') {
+                program += 8;
+
+                // skip the spaces
+                while (isspace(*program)) {
+                    program++;
+                }
+
+                // read in the file string
+                const char* fileNameStart = program;
+                do {
+                    program += 1;
+                } while(isalnum(*program) || *program == '.' || *program == '/');
+
+                Slice fileName = {fileNameStart, (size_t)(program - fileNameStart)};
+                char str[fileName.len + 1];
+                for (size_t i = 0; i < fileName.len; i++) {
+                    str[i] = fileName.start[i];
+                }
+                str[fileName.len] = '\0';
+
+                // open the file
+                int fd = open(str,O_RDONLY);
+                if (fd < 0) {   
+                    perror("open");
+                    exit(1);
+                }
+
+                // determine its size (std::filesystem::get_size?)
+                struct stat file_stats;
+                int rc = fstat(fd,&file_stats);
+                if (rc != 0) {
+                    perror("fstat");
+                    exit(1);
+                }
+
+                // map the file in my address space
+                char const* prog = (char const *)mmap(
+                    0,
+                    file_stats.st_size,
+                    PROT_READ,
+                    MAP_PRIVATE,
+                    fd,
+                    0);
+                if (prog == MAP_FAILED) {
+                    perror("mmap");
+                    exit(1);
+                }
+
+                // prog is the new program pointer
+                Tokens newProg = tokenize(prog);
+
+                // tokens <- newProg.tokens
+                while (idx + newProg.size >= size) {
+                    size *= 2;
+                    tokens = (Token*)realloc(tokens, size * (sizeof (Token)));
+                }
+
+                // concantonate these two
+                for (int i = 0; i < newProg.size; i++) {
+                    tokens[idx + i] = newProg.tokens[i];
+                }
+
+                idx += newProg.size;
+
+                // lets free a bunch of stuff
+                free(newProg.tokens);
+            } else {
+                // it is not a preprocessing directive
+                tokens[idx].type = IDENTIFIER;
+                tokens[idx].s = consume_identifier(&program);
+                if (tokens[idx].s.len == 0) {
+                    tokens[idx].type = LITERAL;
+                    tokens[idx].literal = consume_literal(&program);
+                }
+                idx++;
             }
-            idx++;
         }
 
         while (isspace(*program)) {
@@ -126,6 +196,7 @@ Tokens tokenize(const char* program) {
         }
     }
 
+    // allocate the 
     tokens = (Token*)realloc(tokens, idx * (sizeof (Token)));
     Tokens out = {tokens, idx};
     return out;
@@ -135,6 +206,9 @@ Tokens tokenize(const char* program) {
  Creates an AST Tree from a given fun program
 */
 ASTNode* ast_create(const char* program) {
+    // preprocess the directives
+    // include_directive(program);
+
     Tokens t = tokenize(program);
     ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
     out->type = BLOCK;
