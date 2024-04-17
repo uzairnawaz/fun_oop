@@ -6,7 +6,7 @@
 #include "ast.h"
 
 std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
-std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
+std::unordered_map<Slice, ClassNode*, slice_hash_func, slice_equals_func> classNames;
 
 
 /*
@@ -206,8 +206,8 @@ Tokens tokenize(const char* program) {
  Creates an AST Tree from a given fun program
 */
 ASTNode* ast_create(const char* program) {
-    // preprocess the directives
-    // include_directive(program);
+    classNames.insert({{"Object", 6}, nullptr});
+    classNames.insert({{"int", 3}, nullptr});
 
     Tokens t = tokenize(program);
     ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
@@ -620,38 +620,40 @@ ASTNode* statement(Tokens t, int* curToken) {
         case IDENTIFIER: {
             ASTNode* left = (ASTNode*)malloc(sizeof (ASTNode));
             if (t.tokens[*curToken + 1].type == IDENTIFIER) {
-                // if the form is [TYPE] var_name = [VALUE]
+                // if the form is [TYPE] var_name
 
                 varTypes.insert({t.tokens[*curToken + 1].s, t.tokens[*curToken].s});
-                if (t.tokens[*curToken + 2].type != ASSIGN) {
-                    //we are declaring an object: [TYPE] var_name
-                    out->type = DECLARATION;
-                    ASTNode* type = (ASTNode*)malloc(sizeof (ASTNode));
-                    type->type = IDENTIFIER;
-                    type->numChildren = 0;
-                    type->identifier = t.tokens[*curToken].s;
-                    
-                    ASTNode* varName = (ASTNode*)malloc(sizeof (ASTNode));
-                    varName->type = IDENTIFIER;
-                    varName->numChildren = 0;
-                    varName->identifier = t.tokens[*curToken + 1].s;
+                left->type = DECLARATION;
+                ASTNode* type = (ASTNode*)malloc(sizeof (ASTNode));
+                type->type = IDENTIFIER;
+                type->numChildren = 0;
+                type->identifier = t.tokens[*curToken].s;
+                
+                ASTNode* varName = (ASTNode*)malloc(sizeof (ASTNode));
+                varName->type = IDENTIFIER;
+                varName->numChildren = 0;
+                varName->identifier = t.tokens[*curToken + 1].s;
 
-                    setTwoChildren(out, type, varName);
-                    *curToken += 2;
-                    break;
-                }
-                *curToken += 1;
+                setTwoChildren(left, type, varName);
+                *curToken += 2;
             } else {
+                // the form is var_name = value
+                // implicit type of int
                 varTypes.insert({t.tokens[*curToken].s, {"int", 3}});
+                left->type = IDENTIFIER;
+                left->numChildren = 0;
+                left->identifier = t.tokens[*curToken].s;
+                *curToken += 1;
             }
-            
-            out->type = ASSIGN;
-            left->type = IDENTIFIER;
-            left->numChildren = 0;
-            left->identifier = t.tokens[*curToken].s;
-            *curToken += 2; // skip past identifier and =
-            ASTNode* right = expression(t, curToken);
-            setTwoChildren(out, left, right);
+            if (t.tokens[*curToken].type == ASSIGN) {
+                out->type = ASSIGN;
+                *curToken += 1; // skip past =
+                ASTNode* right = expression(t, curToken);
+                setTwoChildren(out, left, right);
+            } else {
+                free(out);
+                out = left;
+            }
             break;
         }
         case FUN: { // allow creation of a variable named fun
@@ -683,6 +685,8 @@ ASTNode* statement(Tokens t, int* curToken) {
                 *curToken += 2;
             }
             setThreeChildren(out, name, parent, block(t, curToken));
+
+            classNames.insert({name->identifier, new ClassNode(out)});
             break;
         }
         default:
