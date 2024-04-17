@@ -271,9 +271,24 @@ ASTNode* e1(Tokens t, int* curToken) {
         case FUN:
             out->type = FUN;
             *curToken += 1;
-            setChild(out, block(t, curToken));
-            *curToken -= 1; // will consume a token later
-            break;
+
+            if (t.tokens[*curToken].type == OPEN_PAREN) {
+                *curToken += 1;
+                Token typeToken = t.tokens[*curToken];
+                *curToken += 2; // read in type and close_paren
+
+                ASTNode* typeNode = (ASTNode*)malloc(sizeof (ASTNode));
+                typeNode->type = typeToken.type;
+                typeNode->identifier = typeToken.s;
+
+                setTwoChildren(out, typeNode, block(t, curToken));
+                *curToken -= 1; // will consume a token later
+                break;
+            } else {
+                setChild(out, block(t, curToken));
+                *curToken -= 1; // will consume a token later
+                break;
+            }
         case IDENTIFIER:
             out->type = IDENTIFIER;
             out->identifier = t.tokens[*curToken].s;
