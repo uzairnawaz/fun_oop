@@ -6,7 +6,7 @@ ARM_GCC=~gheith/public/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aa
 
 
 CXX=g++
-CXX_FLAGS=-Wall -Werror -std=c++17
+CXX_FLAGS=-Wall -Werror -g -std=c++17
 CC=cc
 CC_FLAGS=-Wall -Werror -std=c99
 

@@ -1,6 +1,7 @@
 
 #include "compiler.h"
 
+
 /*
  Compiles the given fun program
  Compiled code is printed to stdout
@@ -8,15 +9,13 @@
 void FunCompiler::compile(const char* program) {
     astRoot = ast_create(program);
 
-    /*
-    ast_display(astRoot, 0);
-    for (auto it=varTypes.begin(); it!=varTypes.end(); it++) {
-        slice_print(it->first);
-        printf(" ");
-        slice_print(it->second);
-        printf("\n");
-    }
-    */ 
+    // ast_display(astRoot, 0);
+    // for (auto it=varTypes.begin(); it!=varTypes.end(); it++) {
+    //     slice_print(it->first);
+    //     printf(" ");
+    //     slice_print(it->second);
+    //     printf("\n");
+    // }
 
     preprocess();    
 
