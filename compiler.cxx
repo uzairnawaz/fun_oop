@@ -9,7 +9,7 @@
 void FunCompiler::compile(const char* program) {
     astRoot = ast_create(program);
 
-    // ast_display(astRoot, 0);
+    ast_display(astRoot, 0);
     // for (auto it=varTypes.begin(); it!=varTypes.end(); it++) {
     //     slice_print(it->first);
     //     printf(" ");

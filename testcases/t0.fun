@@ -1,3 +1,6 @@
-#include testcases/t0.help
+a = fun (Animal) {
+    print 3
+}
 
-print 3
+
+
