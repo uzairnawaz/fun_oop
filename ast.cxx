@@ -7,7 +7,7 @@
 #include "ast.h"
 
 std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
-std::unordered_map<Slice, ASTNode*> classNames;
+std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
 
 
 /*
@@ -276,7 +276,7 @@ ASTNode* e1_5(Tokens t, int* curToken) {
 ASTNode* e2(Tokens t, int* curToken) {
     ASTNode* n = e1_5(t, curToken);
     ASTNode* out = n;
-    while (*curToken < t.size && t.tokens[*curToken].type == FUNC_CALL) {
+    while (*curToken < t.size && t.tokens[*curToken].type == OPEN_PAREN) {
         out = (ASTNode*)malloc(sizeof (ASTNode));
         out->type = FUNC_CALL;
         *curToken += 1; // consume open paren
@@ -302,9 +302,9 @@ ASTNode* e2_5(Tokens t, int* curToken) {
         }
         *curToken += 1;
         setTwoChildren(top, left, e2(t, curToken));
-        left = top
+        left = top;
     }
-    return out;
+    return top;
 }
 
 // * / % (Left)
@@ -548,6 +548,7 @@ ASTNode* statement(Tokens t, int* curToken) {
                     varName->identifier = t.tokens[*curToken + 1].s;
 
                     setTwoChildren(out, type, varName);
+                    *curToken += 2;
                     break;
                 }
                 *curToken += 1;
@@ -597,9 +598,9 @@ ASTNode* statement(Tokens t, int* curToken) {
         }
         default:
             free(out);
+            printf("!!! %d\n", t.tokens[*curToken].type);
             fail(curToken);
             return NULL;
-            break;
     }
     return out;
 }
@@ -708,53 +709,55 @@ void ast_fold(ASTNode* ast) {
     
 }
 
+
+const char* tokenNames[36] = {
+    "OPEN_PAREN",
+    "CLOSE_PAREN",
+    "OPEN_CURLY",
+    "CLOSE_CURLY",
+    "CLASS",
+    "EXTENDS",
+    "FUN",
+    "WHILE",
+    "IF",
+    "ELSE",
+    "PRINT",
+    "RETURN",
+    "PLUS",
+    "MINUS",
+    "MULT",
+    "DIV",
+    "MOD",
+    "SHIFT_LEFT",
+    "SHIFT_RIGHT",
+    "LESS_EQUAL",
+    "GREATER_EQUAL",
+    "LESS",
+    "GREATER",
+    "EQUAL",
+    "NOT_EQUAL",
+    "ASSIGN",
+    "LOG_AND",
+    "BIT_AND",
+    "LOG_OR",
+    "COMMA",
+    "ACCESS",
+    "IDENTIFIER",
+    "LITERAL",
+    "DECLARATION",
+    "FUNC_CALL",
+    "BLOCK"
+};
+
 /*
  Provides a text representation of the AST for debugging purposes
  Depth should be 0 on the initial call.
 */
 void ast_display(ASTNode* n, int depth) {
-    static const char* names[35] = {
-        "OPEN_PAREN",
-        "CLOSE_PAREN",
-        "OPEN_CURLY",
-        "CLOSE_CURLY",
-        "CLASS",
-        "EXTENDS",
-        "FUN",
-        "WHILE",
-        "IF",
-        "ELSE",
-        "PRINT",
-        "RETURN",
-        "PLUS",
-        "MINUS",
-        "MULT",
-        "DIV",
-        "MOD",
-        "SHIFT_LEFT",
-        "SHIFT_RIGHT",
-        "LESS_EQUAL",
-        "GREATER_EQUAL",
-        "LESS",
-        "GREATER",
-        "EQUAL",
-        "NOT_EQUAL",
-        "ASSIGN",
-        "LOG_AND",
-        "BIT_AND",
-        "LOG_OR",
-        "COMMA",
-        "IDENTIFIER",
-        "LITERAL",
-        "FUNC_CALL",
-        "BLOCK",
-        "ACCESS"
-    };
-
     for (int i = 0; i < depth; i++) {
         printf(">");
     }
-    printf(" %s ", names[n->type]);
+    printf(" %s ", tokenNames[n->type]);
     if (n->type == IDENTIFIER) {
         for (size_t i = 0; i < n->identifier.len; i++) {
             printf("%c", n->identifier.start[i]);
@@ -766,6 +769,12 @@ void ast_display(ASTNode* n, int depth) {
 
     for (int i = 0; i < n->numChildren; i++) {
         ast_display(n->children[i], depth + 1);
+    }
+}
+
+void tokens_display(Tokens t) {
+    for (int i = 0; i < t.size; i++) {
+        printf("%d: %s\n", i, tokenNames[t.tokens[i].type]);
     }
 }
 

@@ -67,8 +67,10 @@ extern std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> c
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);
-void ast_display(ASTNode* n, int depth);
 void ast_fold(ASTNode* ast);
+
+void ast_display(ASTNode* n, int depth);
+void tokens_display(Tokens t);
 
 ASTNode* expression(Tokens t, int* curToken);
 ASTNode* block(Tokens t, int* curToken);
