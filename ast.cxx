@@ -6,6 +6,10 @@
 
 #include "ast.h"
 
+std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
+std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
+
+
 /*
  Provides an error message for debugging and ends program
 */
@@ -75,12 +79,12 @@ bool match(const char* current, const char* token) {
  This array is guanranteed to be tightly bound (no extra memory used).
 */
 Tokens tokenize(const char* program) {
-    static const char* TOKENS[] = {"(", ")", "{", "}", "fun", "while", "if", "else", "print",
+    static const char* TOKENS[] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ","};
-    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
-        1, 2, 2, 1, 2, 1, 2, 1};
-    static const int NUM_TOKEN_TYPES = 28;
+        "&", "||", ",", "."};
+    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
+        1, 2, 2, 1, 2, 1, 2, 1, 1};
+    static const int NUM_TOKEN_TYPES = 31;
     static const int STARTING_NUM_TOKENS = 100;
 
     int size = STARTING_NUM_TOKENS;
@@ -248,9 +252,29 @@ ASTNode* e1(Tokens t, int* curToken) {
     return out;
 }
 
+// access 
+ASTNode* e1_5(Tokens t, int* curToken) {
+    ASTNode* left = e1(t, curToken);
+    ASTNode* out = left;
+    while (*curToken < t.size) {
+        switch (t.tokens[*curToken].type) {
+            case ACCESS:
+                out = (ASTNode*)malloc(sizeof (ASTNode));
+                out->type = t.tokens[*curToken].type; 
+                break;
+            default:
+                return out; 
+        }
+        *curToken += 1;
+        setTwoChildren(out, left, e1(t, curToken));
+        left = out;
+    }
+    return out;
+}
+
 // f(it)
 ASTNode* e2(Tokens t, int* curToken) {
-    ASTNode* n = e1(t, curToken);
+    ASTNode* n = e1_5(t, curToken);
     ASTNode* out = n;
     while (*curToken < t.size && t.tokens[*curToken].type == OPEN_PAREN) {
         out = (ASTNode*)malloc(sizeof (ASTNode));
@@ -263,9 +287,29 @@ ASTNode* e2(Tokens t, int* curToken) {
     return out;
 }
 
+// accessing attribute of returned object
+ASTNode* e2_5(Tokens t, int* curToken) {
+    ASTNode* left = e2(t, curToken);
+    ASTNode* top = left;
+    while (*curToken < t.size) {
+        switch (t.tokens[*curToken].type) {
+            case ACCESS:
+                top = (ASTNode*)malloc(sizeof (ASTNode));
+                top->type = t.tokens[*curToken].type; 
+                break;
+            default:
+                return top; 
+        }
+        *curToken += 1;
+        setTwoChildren(top, left, e2(t, curToken));
+        left = top;
+    }
+    return top;
+}
+
 // * / % (Left)
 ASTNode* e3(Tokens t, int* curToken) {
-    ASTNode* left = e2(t, curToken);
+    ASTNode* left = e2_5(t, curToken);
     ASTNode* top = left; 
     while (*curToken < t.size) {
         switch (t.tokens[*curToken].type) {
@@ -485,8 +529,34 @@ ASTNode* statement(Tokens t, int* curToken) {
             break;
         }
         case IDENTIFIER: {
-            out->type = ASSIGN;
             ASTNode* left = (ASTNode*)malloc(sizeof (ASTNode));
+            if (t.tokens[*curToken + 1].type == IDENTIFIER) {
+                // if the form is [TYPE] var_name = [VALUE]
+
+                varTypes.insert({t.tokens[*curToken + 1].s, t.tokens[*curToken].s});
+                if (t.tokens[*curToken + 2].type != ASSIGN) {
+                    //we are declaring an object: [TYPE] var_name
+                    out->type = DECLARATION;
+                    ASTNode* type = (ASTNode*)malloc(sizeof (ASTNode));
+                    type->type = IDENTIFIER;
+                    type->numChildren = 0;
+                    type->identifier = t.tokens[*curToken].s;
+                    
+                    ASTNode* varName = (ASTNode*)malloc(sizeof (ASTNode));
+                    varName->type = IDENTIFIER;
+                    varName->numChildren = 0;
+                    varName->identifier = t.tokens[*curToken + 1].s;
+
+                    setTwoChildren(out, type, varName);
+                    *curToken += 2;
+                    break;
+                }
+                *curToken += 1;
+            } else {
+                varTypes.insert({t.tokens[*curToken].s, {"int", 3}});
+            }
+            
+            out->type = ASSIGN;
             left->type = IDENTIFIER;
             left->numChildren = 0;
             left->identifier = t.tokens[*curToken].s;
@@ -507,11 +577,30 @@ ASTNode* statement(Tokens t, int* curToken) {
             setTwoChildren(out, l, r);
             break;
         }
+        case CLASS: {
+            out->type = CLASS;
+            ASTNode* name = (ASTNode*)malloc(sizeof (ASTNode));
+            name->type = IDENTIFIER;
+            name->identifier = t.tokens[*curToken + 1].s;
+            name->numChildren = 0;
+            ASTNode* parent = (ASTNode*)malloc(sizeof (ASTNode));
+            parent->type = IDENTIFIER;
+            parent->numChildren = 0;
+            if (t.tokens[*curToken + 2].type == EXTENDS) {
+                parent->identifier = t.tokens[*curToken + 3].s;
+                *curToken += 4;
+            } else {
+                parent->identifier = {"Object", 6};
+                *curToken += 2;
+            }
+            setThreeChildren(out, name, parent, block(t, curToken));
+            break;
+        }
         default:
             free(out);
+            printf("!!! %d\n", t.tokens[*curToken].type);
             fail(curToken);
             return NULL;
-            break;
     }
     return out;
 }
@@ -620,50 +709,55 @@ void ast_fold(ASTNode* ast) {
     
 }
 
+
+const char* tokenNames[36] = {
+    "OPEN_PAREN",
+    "CLOSE_PAREN",
+    "OPEN_CURLY",
+    "CLOSE_CURLY",
+    "CLASS",
+    "EXTENDS",
+    "FUN",
+    "WHILE",
+    "IF",
+    "ELSE",
+    "PRINT",
+    "RETURN",
+    "PLUS",
+    "MINUS",
+    "MULT",
+    "DIV",
+    "MOD",
+    "SHIFT_LEFT",
+    "SHIFT_RIGHT",
+    "LESS_EQUAL",
+    "GREATER_EQUAL",
+    "LESS",
+    "GREATER",
+    "EQUAL",
+    "NOT_EQUAL",
+    "ASSIGN",
+    "LOG_AND",
+    "BIT_AND",
+    "LOG_OR",
+    "COMMA",
+    "ACCESS",
+    "IDENTIFIER",
+    "LITERAL",
+    "DECLARATION",
+    "FUNC_CALL",
+    "BLOCK"
+};
+
 /*
  Provides a text representation of the AST for debugging purposes
  Depth should be 0 on the initial call.
 */
-void display(ASTNode* n, int depth) {
-    static const char* names[32] = {
-        "OPEN_PAREN",
-        "CLOSE_PAREN",
-        "OPEN_CURLY",
-        "CLOSE_CURLY",
-        "FUN",
-        "WHILE",
-        "IF",
-        "ELSE",
-        "PRINT",
-        "RETURN",
-        "PLUS",
-        "MINUS",
-        "MULT",
-        "DIV",
-        "MOD",
-        "SHIFT_LEFT",
-        "SHIFT_RIGHT",
-        "LESS_EQUAL",
-        "GREATER_EQUAL",
-        "LESS",
-        "GREATER",
-        "EQUAL",
-        "NOT_EQUAL",
-        "ASSIGN",
-        "LOG_AND",
-        "BIT_AND",
-        "LOG_OR",
-        "COMMA",
-        "IDENTIFIER",
-        "LITERAL",
-        "FUNC_CALL",
-        "BLOCK"
-    };
-
+void ast_display(ASTNode* n, int depth) {
     for (int i = 0; i < depth; i++) {
         printf(">");
     }
-    printf(" %s ", names[n->type]);
+    printf(" %s ", tokenNames[n->type]);
     if (n->type == IDENTIFIER) {
         for (size_t i = 0; i < n->identifier.len; i++) {
             printf("%c", n->identifier.start[i]);
@@ -674,10 +768,15 @@ void display(ASTNode* n, int depth) {
     printf("\n");
 
     for (int i = 0; i < n->numChildren; i++) {
-        display(n->children[i], depth + 1);
+        ast_display(n->children[i], depth + 1);
     }
 }
 
+void tokens_display(Tokens t) {
+    for (int i = 0; i < t.size; i++) {
+        printf("%d: %s\n", i, tokenNames[t.tokens[i].type]);
+    }
+}
 
 /*
  Frees the AST from memory.

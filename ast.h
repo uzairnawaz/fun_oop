@@ -1,5 +1,7 @@
+
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unordered_map>
 #include "slice.h"
 
 typedef enum {
@@ -7,6 +9,8 @@ typedef enum {
     CLOSE_PAREN,
     OPEN_CURLY,
     CLOSE_CURLY,
+    CLASS,
+    EXTENDS,
     FUN,
     WHILE,
     IF,
@@ -31,8 +35,10 @@ typedef enum {
     BIT_AND,
     LOG_OR,
     COMMA,
+    ACCESS,
     IDENTIFIER,
     LITERAL,
+    DECLARATION,
     FUNC_CALL,
     BLOCK,
 } ASTType;
@@ -56,11 +62,15 @@ typedef struct ASTNode {
     Slice identifier;
 } ASTNode;
 
+extern std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
+extern std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);
-void display(ASTNode* n, int depth);
 void ast_fold(ASTNode* ast);
+
+void ast_display(ASTNode* n, int depth);
+void tokens_display(Tokens t);
 
 ASTNode* expression(Tokens t, int* curToken);
 ASTNode* block(Tokens t, int* curToken);
