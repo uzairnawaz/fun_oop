@@ -16,7 +16,7 @@ void FunCompiler::compile(const char* program) {
         slice_print(it->second);
         printf("\n");
     }
-    */
+    */ 
 
     preprocess();    
 

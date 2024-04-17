@@ -1,8 +1,11 @@
 
+#pragma once
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unordered_map>
 #include "slice.h"
+#include "classtree.h"
 
 typedef enum {
     OPEN_PAREN = 0,
@@ -63,7 +66,7 @@ typedef struct ASTNode {
 } ASTNode;
 
 extern std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
-extern std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
+extern std::unordered_map<Slice, ClassNode*, slice_hash_func, slice_equals_func> classNames;
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);
