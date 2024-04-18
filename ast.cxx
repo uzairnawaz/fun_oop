@@ -200,6 +200,7 @@ Tokens tokenize(const char* program) {
     // allocate the 
     tokens = (Token*)realloc(tokens, idx * (sizeof (Token)));
     Tokens out = {tokens, idx};
+    tokens_display(out);
     return out;
 }
 

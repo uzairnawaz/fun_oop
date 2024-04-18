@@ -88,18 +88,49 @@ void FunCompiler::loadBinaryChildrenReg(ASTNode* ast) {
 
 
 /*
+ Determines the type of the value at an ASTNode 
+*/
+ClassNode* FunCompiler::determineType(ASTNode* ast) {
+    switch (ast->type)
+    {
+    case IDENTIFIER:
+        return classNames.at(ast->identifier);
+    case FUNC_CALL:
+        // TODO :)
+        return nullptr;
+    case ACCESS:
+        return determineType(ast->children[0])->memberTypes.at(ast->children[1]->identifier);
+    default:
+        return nullptr;
+    }
+}
+
+/*
  Compiles the AST recursively
  The result of any operation is guaranteed to be stored in x0
 */
 void FunCompiler::compile_ast(ASTNode* ast) {
     switch (ast->type) {
         case DECLARATION: {
-            // Slice type = ast->children[0]->identifier;
-            // ASTNode* classNode = classNames.at(type); 
+            Slice type = ast->children[0]->identifier;
+            ClassNode* classNode = classNames.at(type); 
 
-            // printf("    mov x0, %d\n", size);:w
+            printf("    mov x0, %ld\n", classNode->getSize());
             printf("    bl malloc\n");
+
+            printf("    ldr x1, =v_");
+            slice_print(ast->children[1]->identifier);
+            printf("\n");
+
+            printf("    str x0, [x1]\n"); // variable now stores a pointer to the allocated memory
             break;
+        }
+        case ACCESS: {
+            ClassNode* type = determineType(ast->children[0]);
+            uint64_t idx = type->memberPos.at(ast->children[1]->identifier);
+
+            compile_ast(ast->children[0]);
+            printf("    ldr x0, [x0, #%ld]\n", idx);
         }
         case FUN: {
             int labelNum = labelCounter++; 
@@ -276,9 +307,28 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             return;
         }
         case ASSIGN: { 
+            /*
+            Two options:
+            var = value
+                   ASSIGN
+                   /    \
+            var_name   value
+
+                        ASSIGN
+                        /    \
+                DECLARATION  value
+                /     \
+            type     var_name
+            */
             compile_ast(ast->children[1]);
             printf("    ldr x1, =v_");
-            slice_print(ast->children[0]->identifier);
+            if (ast->children[0]->type == DECLARATION) {
+                slice_print(ast->children[0]->children[1]->identifier);
+            } else if (ast->children[0]->type == IDENTIFIER) {
+                slice_print(ast->children[0]->identifier);
+            } else {
+                // BAD! ERROR!!
+            }
             printf("\n");
             printf("    str x0, [x1]\n");
             return;

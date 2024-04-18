@@ -21,6 +21,7 @@ private:
     void compile_ast(ASTNode* ast);
     void preprocess();
     void loadBinaryChildrenReg(ASTNode* ast);
+    ClassNode* determineType(ASTNode* ast);
 
     void preprocessVars(ASTNode* ast,
         std::unordered_set<Slice, slice_hash_func, slice_equals_func>* varNames);
