@@ -112,7 +112,8 @@ Tokens tokenize(const char* program) {
 
         if (!foundToken) {
             // is it the include directive?
-            if (program[0] == '#' && program[1] == 'i' && program[2] == 'n' && program[3] == 'c' && program[4] == 'l' && program[5] == 'u' && program[6] == 'd' && program[7] == 'e') {
+            if (match(program, "#include")) {
+
                 program += 8;
 
                 // skip the spaces
