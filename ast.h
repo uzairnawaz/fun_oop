@@ -17,6 +17,7 @@ typedef enum {
     ELSE,
     PRINT,
     RETURN,
+    ARROW,
     PLUS,
     MINUS,
     MULT,

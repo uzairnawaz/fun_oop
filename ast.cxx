@@ -79,11 +79,11 @@ bool match(const char* current, const char* token) {
 */
 Tokens tokenize(const char* program) {
     static const char* TOKENS[] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
-        "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
+        "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
         "&", "||", ",", "."};
-    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
+    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 2, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
         1, 2, 2, 1, 2, 1, 2, 1, 1};
-    static const int NUM_TOKEN_TYPES = 31;
+    static const int NUM_TOKEN_TYPES = 32;
     static const int STARTING_NUM_TOKENS = 100;
 
     int size = STARTING_NUM_TOKENS;
@@ -272,20 +272,23 @@ ASTNode* e1(Tokens t, int* curToken) {
             out->type = FUN;
             *curToken += 1;
 
+            // this if statement should always be true but the program breaks without it
             if (t.tokens[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
-                Token typeToken = t.tokens[*curToken];
-                *curToken += 2; // read in type and close_paren
+                Token parameterToken = t.tokens[*curToken];
+                *curToken += 4; // read in type and close_paren and the arrow and the open
+                Token returnToken = t.tokens[*curToken];
+                *curToken += 2;
 
-                ASTNode* typeNode = (ASTNode*)malloc(sizeof (ASTNode));
-                typeNode->type = typeToken.type;
-                typeNode->identifier = typeToken.s;
+                ASTNode* paramNode = (ASTNode*)malloc(sizeof (ASTNode));
+                paramNode->type = parameterToken.type;
+                paramNode->identifier = parameterToken.s;
 
-                setTwoChildren(out, typeNode, block(t, curToken));
-                *curToken -= 1; // will consume a token later
-                break;
-            } else {
-                setChild(out, block(t, curToken));
+                ASTNode* returnNode = (ASTNode*)malloc(sizeof (ASTNode));
+                returnNode->type = returnToken.type;
+                returnNode->identifier = returnToken.s;
+
+                setThreeChildren(out, paramNode, returnNode, block(t, curToken));
                 *curToken -= 1; // will consume a token later
                 break;
             }
@@ -799,7 +802,7 @@ void ast_fold(ASTNode* ast) {
 }
 
 
-const char* tokenNames[36] = {
+const char* tokenNames[37] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
@@ -812,6 +815,7 @@ const char* tokenNames[36] = {
     "ELSE",
     "PRINT",
     "RETURN",
+    "ARROW",
     "PLUS",
     "MINUS",
     "MULT",
