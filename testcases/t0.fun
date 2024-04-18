@@ -5,7 +5,8 @@ class Dog {
 }
 
 b = fun (Animal) -> (Dog) {
-    print 4
+    print 3
 }
 
-print 3
+
+c = b(2)

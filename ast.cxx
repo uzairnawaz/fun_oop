@@ -289,7 +289,7 @@ ASTNode* e1(Tokens t, int* curToken) {
                 returnNode->type = returnToken.type;
                 returnNode->identifier = returnToken.s;
 
-                setThreeChildren(out, paramNode, returnNode, block(t, curToken));
+                setThreeChildren(out, block(t, curToken), paramNode, returnNode);
                 *curToken -= 1; // will consume a token later
                 break;
             }
