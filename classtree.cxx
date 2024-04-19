@@ -38,25 +38,25 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
         if (curStatement->type == DECLARATION) {
             memberTypes.insert({curStatement->children[1]->identifier, 
                                 classNames.at(curStatement->children[0]->identifier)});
-            memberPos.insert({curStatement->children[1]->identifier, statementNum});
+            memberPos.insert({curStatement->children[1]->identifier, 8 * statementNum});
             memberIsFunc.insert({curStatement->children[1]->identifier, false});
         } else if (curStatement->type == ASSIGN) { 
             if (curStatement->children[0]->type == DECLARATION) {
                 memberTypes.insert({curStatement->children[0]->children[1]->identifier, classNames.at(curStatement->children[0]->children[0]->identifier)});
-                memberPos.insert({curStatement->children[0]->children[1]->identifier, statementNum});
+                memberPos.insert({curStatement->children[0]->children[1]->identifier, 8 * statementNum});
                 memberIsFunc.insert({curStatement->children[0]->children[1]->identifier, false});
             } else {
                 memberIsFunc.insert({curStatement->children[0]->identifier, curStatement->children[1]->type == FUN});
                 memberTypes.insert({curStatement->children[0]->identifier, 
                     classNames.at({"int", 3})});
-                memberPos.insert({curStatement->children[0]->identifier, statementNum});
+                memberPos.insert({curStatement->children[0]->identifier, 8 * statementNum});
             }
         }
     }
 }
 
 size_t ClassNode::getSize() {
-    return memberPos.size();
+    return memberPos.size() * sizeof (uint64_t);
 }
 
 ClassNode* ClassNode::getParent() {

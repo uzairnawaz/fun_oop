@@ -94,7 +94,7 @@ ClassNode* FunCompiler::determineType(ASTNode* ast) {
     switch (ast->type)
     {
     case IDENTIFIER:
-        return classNames.at(ast->identifier);
+        return classNames.at(varTypes.at(ast->identifier));
     case FUNC_CALL:
         // TODO :)
         return nullptr;
@@ -115,7 +115,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             Slice type = ast->children[0]->identifier;
             ClassNode* classNode = classNames.at(type); 
 
-            printf("    mov x0, %ld\n", classNode->getSize());
+            printf("    ldr x0, =%ld\n", classNode->getSize());
             printf("    bl malloc\n");
 
             printf("    ldr x1, =v_");
@@ -131,6 +131,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
 
             compile_ast(ast->children[0]);
             printf("    ldr x0, [x0, #%ld]\n", idx);
+            break;
         }
         case FUN: {
             int labelNum = labelCounter++; 
@@ -181,6 +182,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             return;
         }
         case PRINT: 
+            printf("// print\n");
             compile_ast(ast->children[0]);
             printf("    mov x1, x0\n"); // integer to print goes in x1
             printf("    ldr x0, =fmt\n"); 
@@ -320,17 +322,33 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 /     \
             type     var_name
             */
-            compile_ast(ast->children[1]);
-            printf("    ldr x1, =v_");
+            printf("// ASSIGN\n"); 
             if (ast->children[0]->type == DECLARATION) {
+                compile_ast(ast->children[1]);
+                printf("    ldr x1, =v_");
                 slice_print(ast->children[0]->children[1]->identifier);
+                printf("\n");
+                printf("    str x0, [x1]\n");
             } else if (ast->children[0]->type == IDENTIFIER) {
+                compile_ast(ast->children[1]);
+                printf("    ldr x1, =v_");
                 slice_print(ast->children[0]->identifier);
+                printf("\n");
+                printf("    str x0, [x1]\n");
+            } else if (ast->children[0]->type == ACCESS) {
+                ClassNode* type = determineType(ast->children[0]->children[0]);
+                uint64_t idx = type->memberPos.at(ast->children[0]->children[1]->identifier);
+
+                compile_ast(ast->children[0]->children[0]);
+                printf("    str x0, [SP, #-16]!\n");
+                compile_ast(ast->children[1]);
+                printf("    mov x1, x0\n");
+                printf("    ldr x0, [SP], #16\n");
+                printf("    str x1, [x0, #%ld]\n", idx); 
             } else {
                 // BAD! ERROR!!
             }
-            printf("\n");
-            printf("    str x0, [x1]\n");
+            
             return;
         }
         case LOG_AND: { 

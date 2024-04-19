@@ -200,7 +200,7 @@ Tokens tokenize(const char* program) {
     // allocate the 
     tokens = (Token*)realloc(tokens, idx * (sizeof (Token)));
     Tokens out = {tokens, idx};
-    tokens_display(out);
+    // tokens_display(out);
     return out;
 }
 
@@ -642,10 +642,8 @@ ASTNode* statement(Tokens t, int* curToken) {
                 // the form is var_name = value
                 // implicit type of int
                 varTypes.insert({t.tokens[*curToken].s, {"int", 3}});
-                left->type = IDENTIFIER;
-                left->numChildren = 0;
-                left->identifier = t.tokens[*curToken].s;
-                *curToken += 1;
+
+                left = e2_5(t, curToken); // handle accesses (ex: abc.def = 4)
             }
             if (t.tokens[*curToken].type == ASSIGN) {
                 out->type = ASSIGN;
