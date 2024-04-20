@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include "classtree.h"
 
 typedef enum {
     OPEN_PAREN = 0,
@@ -18,6 +19,7 @@ typedef enum {
     ELSE,
     PRINT,
     RETURN,
+    ARROW,
     PLUS,
     MINUS,
     MULT,
@@ -65,7 +67,7 @@ typedef struct ASTNode {
 } ASTNode;
 
 extern std::unordered_map<std::string, std::string> varTypes;
-extern std::unordered_map<std::string, ASTNode*> classNames;
+extern std::unordered_map<std::string, ClassNode*> classNames;
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);

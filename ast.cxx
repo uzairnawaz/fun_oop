@@ -6,10 +6,8 @@
 #include "ast.h"
 
 
-//Try using using std::string; after working
-
 std::unordered_map<std::string, std::string> varTypes;
-std::unordered_map<std::string, ASTNode*> classNames;
+std::unordered_map<std::string, ClassNode*> classNames;
 
 
 /*
@@ -81,9 +79,9 @@ bool match(const char* current, std::string token) {
  This array is guanranteed to be tightly bound (no extra memory used).
 */
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 31;
+    static const int NUM_TOKEN_TYPES = 32;
     static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
-        "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
+        "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
         "&", "||", ",", "."};
     
     //static const int STARTING_NUM_TOKENS = 100;
@@ -110,7 +108,7 @@ std::vector<Token>* tokenize(const char* program) {
 
         if (!foundToken) {
             // is it the include directive?
-            if (program[0] == '#' && program[1] == 'i' && program[2] == 'n' && program[3] == 'c' && program[4] == 'l' && program[5] == 'u' && program[6] == 'd' && program[7] == 'e') {
+            if (match(program, "#include")) {
                 program += 8;
 
                 // skip the spaces
@@ -193,8 +191,8 @@ std::vector<Token>* tokenize(const char* program) {
  Creates an AST Tree from a given fun program
 */
 ASTNode* ast_create(const char* program) {
-    // preprocess the directives
-    // include_directive(program);
+    classNames.insert({"Object", nullptr});
+    classNames.insert({"int", nullptr});
 
     std::vector<Token>* t = tokenize(program);
     ASTNode* out = new ASTNode;
@@ -203,8 +201,6 @@ ASTNode* ast_create(const char* program) {
     uint64_t curToken = 0;
     while (curToken < t->size()) {
         ASTNode* s = statement(t, &curToken);
-        //printf("%d, %s, %lu\n", s->type, s->identifier.c_str(), s->literal);
-        //fflush(stdout);
         out->children.push_back(s);
     }
     //update freeing
@@ -249,14 +245,17 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
 
             if ((*t)[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
-                Token typeToken = (*t)[*curToken];
-                *curToken += 2; // read in type and close_paren
-
-                ASTNode* typeNode = new ASTNode;
-                typeNode->type = typeToken.type;
-                typeNode->identifier = typeToken.s;
-
-                setTwoChildren(out, typeNode, block(t, curToken));
+                Token parameterToken = (*t)[*curToken];
+                *curToken += 4; // read in type and close_paren and the arrow and the open
+                Token returnToken = (*t)[*curToken];
+                *curToken += 2;
+                ASTNode* paramNode = new ASTNode;
+                paramNode->type = parameterToken.type;
+                paramNode->identifier = parameterToken.s;
+                ASTNode* returnNode = new ASTNode;
+                returnNode->type = returnToken.type;
+                returnNode->identifier = returnToken.s;
+                setThreeChildren(out, block(t, curToken), paramNode, returnNode);
                 *curToken -= 1; // will consume a token later
                 break;
             } else {
@@ -607,7 +606,7 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             } else {
                 // the form is var_name = value
                 // implicit type of int
-                varTypes.insert({(*t)[*curToken].s, {"int", 3}});
+                varTypes.insert({(*t)[*curToken].s, "int"});
                 left->type = IDENTIFIER;
                 left->identifier = (*t)[*curToken].s;
                 *curToken += 1;
@@ -633,25 +632,24 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             setTwoChildren(out, l, r);
             break;
         }
-        // case CLASS: {
-        //     out->type = CLASS;
-        //     ASTNode* name = new ASTNode;
-        //     name->type = IDENTIFIER;
-        //     name->identifier = (*t)[*curToken + 1].s;
-        //     ASTNode* parent = (ASTNode*)malloc(sizeof (ASTNode));
-        //     parent->type = IDENTIFIER;
-        //     if ((*t)[*curToken + 2].type == EXTENDS) {
-        //         parent->identifier = (*t)[*curToken + 3].s;
-        //         *curToken += 4;
-        //     } else {
-        //         parent->identifier = {"Object", 6};
-        //         *curToken += 2;
-        //     }
-        //     setThreeChildren(out, name, parent, block(t, curToken));
-
-        //     //classNames.insert({name->identifier, new ClassNode(out)});
-        //     break;
-        // }
+        case CLASS: {
+            out->type = CLASS;
+            ASTNode* name = new ASTNode;
+            name->type = IDENTIFIER;
+            name->identifier = (*t)[*curToken + 1].s;
+            ASTNode* parent = new ASTNode;
+            parent->type = IDENTIFIER;
+            if ((*t)[*curToken + 2].type == EXTENDS) {
+                parent->identifier = (*t)[*curToken + 3].s;
+                *curToken += 4;
+            } else {
+                parent->identifier = "Object";
+                *curToken += 2;
+            }
+            setThreeChildren(out, name, parent, block(t, curToken));
+            classNames.insert({name->identifier, new ClassNode(out)});
+            break;
+        }
         default:
             delete out;
             printf("!!! %d\n", (*t)[*curToken].type);
@@ -756,7 +754,7 @@ void ast_fold(ASTNode* ast) {
 }
 
 
-const char* tokenNames[36] = {
+const char* tokenNames[37] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
@@ -769,6 +767,7 @@ const char* tokenNames[36] = {
     "ELSE",
     "PRINT",
     "RETURN",
+    "ARROW",
     "PLUS",
     "MINUS",
     "MULT",
@@ -830,7 +829,9 @@ void ast_free(ASTNode* ast) {
         ast_free(ast->children[i]);
     }
     // if (ast->children.size() > 0) {
-    //     free(ast->children);
+    //     for (std::vector<ASTNode *>::iterator i = ast->children.begin(); i != ast->children.end(); ++i) {
+    //         delete *i;
+    //     }
     // }
     delete ast;
 }
