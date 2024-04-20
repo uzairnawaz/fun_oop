@@ -194,6 +194,7 @@ ASTNode* ast_create(const char* program) {
     classNames.insert({"Object", nullptr});
     classNames.insert({"int", nullptr});
 
+
     std::vector<Token>* t = tokenize(program);
     ASTNode* out = new ASTNode;
     out->type = BLOCK;
@@ -243,18 +244,22 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             out->type = FUN;
             *curToken += 1;
 
+
             if ((*t)[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
                 Token parameterToken = (*t)[*curToken];
                 *curToken += 4; // read in type and close_paren and the arrow and the open
                 Token returnToken = (*t)[*curToken];
                 *curToken += 2;
+              
                 ASTNode* paramNode = new ASTNode;
                 paramNode->type = parameterToken.type;
                 paramNode->identifier = parameterToken.s;
+              
                 ASTNode* returnNode = new ASTNode;
                 returnNode->type = returnToken.type;
                 returnNode->identifier = returnToken.s;
+              
                 setThreeChildren(out, block(t, curToken), paramNode, returnNode);
                 *curToken -= 1; // will consume a token later
                 break;
