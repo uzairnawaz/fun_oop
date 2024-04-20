@@ -2,7 +2,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unordered_map>
-#include "slice.h"
+#include <string>
+#include <vector>
 
 typedef enum {
     OPEN_PAREN = 0,
@@ -45,25 +46,26 @@ typedef enum {
 
 typedef struct Token {
     ASTType type;
-    Slice s;
+    std::string s;
     uint64_t literal;
 } Token;
 
 typedef struct Tokens {
-    Token* tokens;
+    std::vector<Token> tokens;
     int size;
 } Tokens;
 
 typedef struct ASTNode {
     ASTType type;
-    struct ASTNode** children;
-    int numChildren;
+    std::vector<ASTNode*> children;
+    //struct ASTNode** children;
+    //int numChildren;
     uint64_t literal;
-    Slice identifier;
+    std::string identifier;
 } ASTNode;
 
-extern std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
-extern std::unordered_map<Slice, ASTNode*, slice_hash_func, slice_equals_func> classNames;
+extern std::unordered_map<std::string, std::string> varTypes;
+extern std::unordered_map<std::string, ASTNode*> classNames;
 
 ASTNode* ast_create(const char* program);
 void ast_free(ASTNode* ast);
@@ -72,6 +74,6 @@ void ast_fold(ASTNode* ast);
 void ast_display(ASTNode* n, int depth);
 void tokens_display(Tokens t);
 
-ASTNode* expression(Tokens t, int* curToken);
-ASTNode* block(Tokens t, int* curToken);
-ASTNode* statement(Tokens t, int* curToken);
+ASTNode* expression(std::vector<Token>* t, uint64_t* curToken);
+ASTNode* block(std::vector<Token>* t, uint64_t* curToken);
+ASTNode* statement(std::vector<Token>* t, uint64_t* curToken);

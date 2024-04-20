@@ -9,7 +9,7 @@
 void FunCompiler::compile(const char* program) {
     astRoot = ast_create(program);
 
-    ast_display(astRoot, 0);
+    //ast_display(astRoot, 0);
     // for (auto it=varTypes.begin(); it!=varTypes.end(); it++) {
     //     slice_print(it->first);
     //     printf(" ");
@@ -45,9 +45,9 @@ void FunCompiler::preprocess() {
     printf("v_it:\n");
     printf("    .quad 0\n");
 
-    std::unordered_set<Slice, slice_hash_func, slice_equals_func> varNames;
-    varNames.insert(Slice{"argc", 4});
-    varNames.insert(Slice{"it", 2});
+    std::unordered_set<std::string> varNames;
+    varNames.insert("argc");
+    varNames.insert("it");
     preprocessVars(astRoot, &varNames);
 
     printf("    .text\n");
@@ -58,18 +58,18 @@ void FunCompiler::preprocess() {
  Read in all the variables from the program and store them in the data section of the program
 */
 void FunCompiler::preprocessVars(ASTNode* ast,
-        std::unordered_set<Slice, slice_hash_func, slice_equals_func>* varNames) {
+        std::unordered_set<std::string>* varNames) {
     if (ast->type == IDENTIFIER) {
-        Slice varName = ast->identifier;
+        std::string varName = ast->identifier;
         if (varNames->count(varName) == 0) {
             varNames->insert(varName);
             printf("v_");
-            slice_print(ast->identifier);
+            printf("%s", ast->identifier.c_str());
             printf(":\n");
             printf("    .quad 0\n");
         }
     } else {
-        for (int i = 0; i < ast->numChildren; i++) {
+        for (uint64_t i = 0; i < ast->children.size(); i++) {
             preprocessVars(ast->children[i], varNames);
         }
     }
@@ -143,7 +143,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             compile_ast(ast->children[1]);
             printf("    b if_end%d\n", labelNum); 
             printf("else%d:\n", labelNum);
-            if (ast->numChildren == 3) { // if this "if" statement had an "else" clause
+            if (ast->children.size() == 3) { // if this "if" statement had an "else" clause
                 compile_ast(ast->children[2]); // compile the else clause 
             }
             printf("if_end%d:\n", labelNum);
@@ -278,7 +278,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
         case ASSIGN: { 
             compile_ast(ast->children[1]);
             printf("    ldr x1, =v_");
-            slice_print(ast->children[0]->identifier);
+            printf("%s", ast->children[0]->identifier.c_str());
             printf("\n");
             printf("    str x0, [x1]\n");
             return;
@@ -327,7 +327,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             return;
         case IDENTIFIER:
             printf("    ldr x0, =v_");
-            slice_print(ast->identifier);
+            printf("%s", ast->identifier.c_str());
             printf("\n");
             printf("    ldr x0, [x0]\n");
             return;
@@ -343,7 +343,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             return;
         case BLOCK:
             // compile every statement in the block
-            for (int i = 0; i < ast->numChildren; i++) {
+            for (uint64_t i = 0; i < ast->children.size(); i++) {
                 compile_ast(ast->children[i]); 
             }
             return;
