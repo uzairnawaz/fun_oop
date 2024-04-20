@@ -111,18 +111,12 @@ ClassNode* FunCompiler::determineType(ASTNode* ast) {
 */
 void FunCompiler::compile_ast(ASTNode* ast) {
     switch (ast->type) {
-        case DECLARATION: {
-            Slice type = ast->children[0]->identifier;
+        case NEW: {
+            Slice type = ast->children[0]->children[0]->identifier;
             ClassNode* classNode = classNames.at(type); 
 
             printf("    ldr x0, =%ld\n", classNode->getSize());
             printf("    bl malloc\n");
-
-            printf("    ldr x1, =v_");
-            slice_print(ast->children[1]->identifier);
-            printf("\n");
-
-            printf("    str x0, [x1]\n"); // variable now stores a pointer to the allocated memory
             break;
         }
         case ACCESS: {

@@ -80,10 +80,10 @@ bool match(const char* current, const char* token) {
 Tokens tokenize(const char* program) {
     static const char* TOKENS[] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ",", "."};
+        "&", "||", ",", ".", "new"};
     static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
-        1, 2, 2, 1, 2, 1, 2, 1, 1};
-    static const int NUM_TOKEN_TYPES = 31;
+        1, 2, 2, 1, 2, 1, 2, 1, 1, 3};
+    static const int NUM_TOKEN_TYPES = 32;
     static const int STARTING_NUM_TOKENS = 100;
 
     int size = STARTING_NUM_TOKENS;
@@ -378,9 +378,20 @@ ASTNode* e2(Tokens t, int* curToken) {
     return out;
 }
 
-// accessing attribute of returned object
+ASTNode* e2_25(Tokens t, int* curToken) {
+    if (t.tokens[*curToken].type == NEW) {
+        ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
+        out->type = NEW;
+        *curToken += 1;
+        setChild(out, e2(t, curToken));
+        return out;
+    }
+    return e2(t, curToken);
+}
+
+// accessing attribute of returned object f(it).data
 ASTNode* e2_5(Tokens t, int* curToken) {
-    ASTNode* left = e2(t, curToken);
+    ASTNode* left = e2_25(t, curToken);
     ASTNode* top = left;
     while (*curToken < t.size) {
         switch (t.tokens[*curToken].type) {
@@ -392,7 +403,7 @@ ASTNode* e2_5(Tokens t, int* curToken) {
                 return top; 
         }
         *curToken += 1;
-        setTwoChildren(top, left, e2(t, curToken));
+        setTwoChildren(top, left, e2_25(t, curToken));
         left = top;
     }
     return top;
@@ -803,7 +814,7 @@ void ast_fold(ASTNode* ast) {
 }
 
 
-const char* tokenNames[36] = {
+const char* tokenNames[37] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
@@ -835,6 +846,7 @@ const char* tokenNames[36] = {
     "LOG_OR",
     "COMMA",
     "ACCESS",
+    "NEW",
     "IDENTIFIER",
     "LITERAL",
     "DECLARATION",
