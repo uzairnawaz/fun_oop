@@ -2,7 +2,7 @@
 #pragma once
 
 #include <unordered_map>
-#include "slice.h"
+#include <string>
 
 struct ASTNode;
 
@@ -12,9 +12,9 @@ public:
 
     ClassNode* getParent();
     size_t getSize();
-    std::unordered_map<Slice, ClassNode*, slice_hash_func, slice_equals_func> memberTypes;
-    std::unordered_map<Slice, uint64_t, slice_hash_func, slice_equals_func> memberPos;
-    std::unordered_map<Slice, bool, slice_hash_func, slice_equals_func> memberIsFunc;
+    std::unordered_map<std::string, ClassNode*> memberTypes;
+    std::unordered_map<std::string, uint64_t> memberPos;
+    std::unordered_map<std::string, bool> memberIsFunc;
     ASTNode* astNode;
 private:
     ClassNode* parent;
