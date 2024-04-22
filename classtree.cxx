@@ -10,7 +10,7 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
     parent = classNames.at(classASTNode->children[1]->identifier);
 
     ASTNode* block = classASTNode->children[2];
-    for (int statementNum = 0; statementNum < block->numChildren; statementNum++) {
+    for (uint64_t statementNum = 0; statementNum < block->children.size(); statementNum++) {
         ASTNode* curStatement = block->children[statementNum];
 
         /*
@@ -55,7 +55,7 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
             } else {
                 memberIsFunc.insert({curStatement->children[0]->identifier, curStatement->children[1]->type == FUN});
                 memberTypes.insert({curStatement->children[0]->identifier, 
-                    classNames.at({"int", 3})});
+                    classNames.at("int")});
                 memberPos.insert({curStatement->children[0]->identifier, 8 * statementNum});
             }
         }

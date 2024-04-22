@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <unordered_set>
-#include "slice.h"
+#include <string>
 #include "ast.h"
 
 #define NUM_REGISTERS 32 
@@ -26,5 +26,5 @@ private:
     ClassNode* determineType(ASTNode* ast);
 
     void preprocessVars(ASTNode* ast,
-        std::unordered_set<Slice, slice_hash_func, slice_equals_func>* varNames);
+        std::unordered_set<std::string>* varNames);
 };

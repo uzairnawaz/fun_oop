@@ -5,15 +5,16 @@
 #include <stdio.h>
 #include "ast.h"
 
-std::unordered_map<Slice, Slice, slice_hash_func, slice_equals_func> varTypes;
-std::unordered_map<Slice, ClassNode*, slice_hash_func, slice_equals_func> classNames;
+
+std::unordered_map<std::string, std::string> varTypes;
+std::unordered_map<std::string, ClassNode*> classNames;
 
 
 /*
  Provides an error message for debugging and ends program
 */
-void fail(int* curToken) {
-    printf("FAILED at token %d\n", *curToken);
+void fail(uint64_t* curToken) {
+    printf("FAILED at token %lu\n", *curToken);
     exit(1);
 }
 
@@ -40,20 +41,20 @@ uint64_t consume_literal(const char** current) {
  the identifier.
  If no identifier is present, returns a slice with a null char* and length of 0.
 */
-Slice consume_identifier(const char** current) {
+std::string consume_identifier(const char** current) {
     if (isalpha(**current)) {
         char const* start = *current;
         do {
             *current += 1;
         } while(isalnum(**current));
 
-        Slice s = {start, (size_t)(*current - start)};
-        return s;
+        std::string slice(start, *current - start);
+        return slice;
     } else {
-        Slice s = {NULL, 0};
-        return s;
+        return "";
     }
 }
+
 
 /*
  Returns true if token is present at the start of current.
@@ -61,10 +62,10 @@ Slice consume_identifier(const char** current) {
  Ex: if current="ifs + ..." and token = "if", 
     match(...) will still return false since the word continues after "if".
 */
-bool match(const char* current, const char* token) {
+bool match(const char* current, std::string token) {
     bool alpha = isalpha(token[0]);
-    int i = 0;
-    while (token[i] != 0) {
+    uint64_t i = 0;
+    while (i < token.length()) {
         if (current[i] != token[i]) {
             return false;
         }
@@ -77,34 +78,30 @@ bool match(const char* current, const char* token) {
  Returns a struct containing an array of tokens from a given fun program
  This array is guanranteed to be tightly bound (no extra memory used).
 */
-Tokens tokenize(const char* program) {
-    static const char* TOKENS[] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
-        "return", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
+
+std::vector<Token>* tokenize(const char* program) {
+    static const int NUM_TOKEN_TYPES = 33;
+    static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
+        "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
         "&", "||", ",", ".", "new"};
-    static const int TOKEN_LENGTH[] = {1, 1, 1, 1, 5, 7, 3, 5, 2, 4, 5, 6, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 
-        1, 2, 2, 1, 2, 1, 2, 1, 1, 3};
-    static const int NUM_TOKEN_TYPES = 32;
-    static const int STARTING_NUM_TOKENS = 100;
+    
+    //static const int STARTING_NUM_TOKENS = 100;
 
-    int size = STARTING_NUM_TOKENS;
-
-    Token* tokens = (Token*)malloc(size * (sizeof (Token)));
+    //int size = STARTING_NUM_TOKENS;
+    
+    std::vector<Token> *tokens = new std::vector<Token>;
     int idx = 0;
     while (isspace(*program)) {
         program++;
     }
     while (*program != 0) {
-        if (idx == size) {
-            size *= 2;
-            tokens = (Token*)realloc(tokens, size * (sizeof (Token)));
-        }
 
         bool foundToken = false;
         for (int i = 0; i < NUM_TOKEN_TYPES; i++) {
-            if (match(program, TOKENS[i])) { 
-                tokens[idx].type = (ASTType)i;
+            if (match(program, TOKENS[i])) {
+                (*tokens).push_back({(ASTType)i, "", 0});
                 idx++;
-                program += TOKEN_LENGTH[i];
+                program += TOKENS[i].length();
                 foundToken = true;
                 break;
             }
@@ -113,7 +110,6 @@ Tokens tokenize(const char* program) {
         if (!foundToken) {
             // is it the include directive?
             if (match(program, "#include")) {
-
                 program += 8;
 
                 // skip the spaces
@@ -127,15 +123,10 @@ Tokens tokenize(const char* program) {
                     program += 1;
                 } while(isalnum(*program) || *program == '.' || *program == '/');
 
-                Slice fileName = {fileNameStart, (size_t)(program - fileNameStart)};
-                char str[fileName.len + 1];
-                for (size_t i = 0; i < fileName.len; i++) {
-                    str[i] = fileName.start[i];
-                }
-                str[fileName.len] = '\0';
+                std::string fileName(fileNameStart, (size_t)(program - fileNameStart));
 
                 // open the file
-                int fd = open(str,O_RDONLY);
+                int fd = open(fileName.c_str(),O_RDONLY);
                 if (fd < 0) {   
                     perror("open");
                     exit(1);
@@ -163,72 +154,56 @@ Tokens tokenize(const char* program) {
                 }
 
                 // prog is the new program pointer
-                Tokens newProg = tokenize(prog);
+                std::vector<Token> *newProg = tokenize(prog);
 
-                // tokens <- newProg.tokens
-                while (idx + newProg.size >= size) {
-                    size *= 2;
-                    tokens = (Token*)realloc(tokens, size * (sizeof (Token)));
+                for (uint64_t i = 0; i < (*newProg).size(); i++) {
+                    (*tokens).push_back((*newProg).at(i));
                 }
 
-                // concantonate these two
-                for (int i = 0; i < newProg.size; i++) {
-                    tokens[idx + i] = newProg.tokens[i];
-                }
-
-                idx += newProg.size;
-
+                idx += (*newProg).size();
+                
+                //free issue
                 // lets free a bunch of stuff
-                free(newProg.tokens);
+                delete newProg;
+                //free(newProg.tokens;
             } else {
                 // it is not a preprocessing directive
-                tokens[idx].type = IDENTIFIER;
-                tokens[idx].s = consume_identifier(&program);
-                if (tokens[idx].s.len == 0) {
-                    tokens[idx].type = LITERAL;
-                    tokens[idx].literal = consume_literal(&program);
+                (*tokens).push_back({IDENTIFIER, consume_identifier(&program), 0});
+
+                if ((*tokens)[idx].s.length() == 0) {
+                    (*tokens).pop_back();
+                    (*tokens).push_back({LITERAL, "", consume_literal(&program)});
                 }
                 idx++;
             }
         }
-
         while (isspace(*program)) {
             program++;
         }
     }
 
-    // allocate the 
-    tokens = (Token*)realloc(tokens, idx * (sizeof (Token)));
-    Tokens out = {tokens, idx};
-    // tokens_display(out);
-    return out;
+    return tokens;
 }
 
 /*
  Creates an AST Tree from a given fun program
 */
 ASTNode* ast_create(const char* program) {
-    classNames.insert({{"Object", 6}, nullptr});
-    classNames.insert({{"int", 3}, nullptr});
+    classNames.insert({"Object", nullptr});
+    classNames.insert({"int", nullptr});
 
-    Tokens t = tokenize(program);
-    ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
+
+    std::vector<Token>* t = tokenize(program);
+    ASTNode* out = new ASTNode;
     out->type = BLOCK;
-    int idx = 0;
-    out->numChildren = 10;
-    out->children = (ASTNode**)malloc(out->numChildren * sizeof (ASTNode*));
-    int curToken = 0;
-    while (curToken < t.size) {
-        if (idx == out->numChildren) {
-            out->numChildren *= 2;
-            out->children = (ASTNode**)realloc(out->children, out->numChildren * sizeof (ASTNode*));
-        }
-        out->children[idx] = statement(t, &curToken);
-        idx++;
+    //int idx = 0;
+    uint64_t curToken = 0;
+    while (curToken < t->size()) {
+        ASTNode* s = statement(t, &curToken);
+        out->children.push_back(s);
     }
-    out->numChildren = idx;
-    out->children = (ASTNode**)realloc(out->children, out->numChildren * sizeof (ASTNode*));
-    free(t.tokens);
+    //update freeing
+    delete t;
 
     ast_fold(out);
 
@@ -239,51 +214,51 @@ ASTNode* ast_create(const char* program) {
  Sets the child of an ASTNode to another ASTNode.
 */
 void setChild(ASTNode* n, ASTNode* child) {
-    n->numChildren = 1;
-    n->children = (ASTNode**)malloc(sizeof (ASTNode*));
-    n->children[0] = child;
+    n->children.push_back(child);
 }
 
 /*
  Sets the children of an ASTNode to the given ASTNodes.
 */
 void setTwoChildren(ASTNode* n, ASTNode* c1, ASTNode* c2) {
-    n->numChildren = 2;
-    n->children = (ASTNode**)malloc(2 * sizeof (ASTNode*));
-    n->children[0] = c1;
-    n->children[1] = c2;
+    n->children.push_back(c1);
+    n->children.push_back(c2);
 }
 
 /*
  Sets the children of an ASTNode to the given ASTNodes.
 */
 void setThreeChildren(ASTNode* n, ASTNode* c1, ASTNode* c2, ASTNode* c3) {
-    n->numChildren = 3;
-    n->children = (ASTNode**)malloc(3 * sizeof (ASTNode*));
-    n->children[0] = c1;
-    n->children[1] = c2;
-    n->children[2] = c3;
+    n->children.push_back(c1);
+    n->children.push_back(c2);
+    n->children.push_back(c3);
 }
 
 // () [] . -> ...
-ASTNode* e1(Tokens t, int* curToken) {
-    ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
-    out->numChildren = 0;
-    switch (t.tokens[*curToken].type) {
+ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
+    ASTNode* out = new ASTNode;
+    switch ((*t)[*curToken].type) {
         case FUN:
             out->type = FUN;
             *curToken += 1;
 
-            if (t.tokens[*curToken].type == OPEN_PAREN) {
+
+            if ((*t)[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
-                Token typeToken = t.tokens[*curToken];
-                *curToken += 2; // read in type and close_paren
-
-                ASTNode* typeNode = (ASTNode*)malloc(sizeof (ASTNode));
-                typeNode->type = typeToken.type;
-                typeNode->identifier = typeToken.s;
-
-                setTwoChildren(out, typeNode, block(t, curToken));
+                Token parameterToken = (*t)[*curToken];
+                *curToken += 4; // read in type and close_paren and the arrow and the open
+                Token returnToken = (*t)[*curToken];
+                *curToken += 2;
+              
+                ASTNode* paramNode = new ASTNode;
+                paramNode->type = parameterToken.type;
+                paramNode->identifier = parameterToken.s;
+              
+                ASTNode* returnNode = new ASTNode;
+                returnNode->type = returnToken.type;
+                returnNode->identifier = returnToken.s;
+              
+                setThreeChildren(out, block(t, curToken), paramNode, returnNode);
                 *curToken -= 1; // will consume a token later
                 break;
             } else {
@@ -293,11 +268,11 @@ ASTNode* e1(Tokens t, int* curToken) {
             }
         case IDENTIFIER:
             out->type = IDENTIFIER;
-            out->identifier = t.tokens[*curToken].s;
+            out->identifier = (*t)[*curToken].s;
             break;
         case LITERAL:
             out->type = LITERAL;
-            out->literal = t.tokens[*curToken].literal;
+            out->literal = (*t)[*curToken].literal;
             break;
         case OPEN_PAREN:
             *curToken += 1; // consume open paren
@@ -312,28 +287,23 @@ ASTNode* e1(Tokens t, int* curToken) {
         */
         case IF:     
             out->type = IDENTIFIER;
-            out->identifier.start = "if";
-            out->identifier.len = 2;
+            out->identifier = "if";
             break;
         case WHILE:
             out->type = IDENTIFIER;
-            out->identifier.start = "while";
-            out->identifier.len = 5;
+            out->identifier = "while";
             break;
         case ELSE:
             out->type = IDENTIFIER;
-            out->identifier.start = "else";
-            out->identifier.len = 4;
+            out->identifier = "else";
             break;
         case RETURN:
             out->type = IDENTIFIER;
-            out->identifier.start = "return";
-            out->identifier.len = 6;
+            out->identifier = "return";
             break;
         case PRINT:
             out->type = IDENTIFIER;
-            out->identifier.start = "print";
-            out->identifier.len = 5;
+            out->identifier = "print";
             break;
         default:
             fail(curToken);
@@ -344,14 +314,14 @@ ASTNode* e1(Tokens t, int* curToken) {
 }
 
 // access 
-ASTNode* e1_5(Tokens t, int* curToken) {
+ASTNode* e1_5(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e1(t, curToken);
     ASTNode* out = left;
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case ACCESS:
-                out = (ASTNode*)malloc(sizeof (ASTNode));
-                out->type = t.tokens[*curToken].type; 
+                out = new ASTNode;
+                out->type = (*t)[*curToken].type; 
                 break;
             default:
                 return out; 
@@ -364,11 +334,11 @@ ASTNode* e1_5(Tokens t, int* curToken) {
 }
 
 // f(it)
-ASTNode* e2(Tokens t, int* curToken) {
+ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* n = e1_5(t, curToken);
     ASTNode* out = n;
-    while (*curToken < t.size && t.tokens[*curToken].type == OPEN_PAREN) {
-        out = (ASTNode*)malloc(sizeof (ASTNode));
+    while (*curToken < (*t).size() && (*t)[*curToken].type == OPEN_PAREN) {
+        out = new ASTNode;
         out->type = FUNC_CALL;
         *curToken += 1; // consume open paren
         setTwoChildren(out, n, expression(t, curToken));
@@ -393,11 +363,11 @@ ASTNode* e2_25(Tokens t, int* curToken) {
 ASTNode* e2_5(Tokens t, int* curToken) {
     ASTNode* left = e2_25(t, curToken);
     ASTNode* top = left;
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case ACCESS:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -410,16 +380,16 @@ ASTNode* e2_5(Tokens t, int* curToken) {
 }
 
 // * / % (Left)
-ASTNode* e3(Tokens t, int* curToken) {
+ASTNode* e3(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e2_5(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case MULT:
             case DIV:
             case MOD:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -432,15 +402,15 @@ ASTNode* e3(Tokens t, int* curToken) {
 }
 
 // (Left) + -
-ASTNode* e4(Tokens t, int* curToken) {
+ASTNode* e4(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e3(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case PLUS:
             case MINUS:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -453,15 +423,15 @@ ASTNode* e4(Tokens t, int* curToken) {
 }
 
 // << >>
-ASTNode* e5(Tokens t, int* curToken) {
+ASTNode* e5(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e4(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case SHIFT_LEFT:
             case SHIFT_RIGHT:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -474,17 +444,17 @@ ASTNode* e5(Tokens t, int* curToken) {
 }
 
 // < <= > >=
-ASTNode* e6(Tokens t, int* curToken) {
+ASTNode* e6(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e5(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case GREATER:
             case LESS:
             case GREATER_EQUAL:
             case LESS_EQUAL:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -497,15 +467,15 @@ ASTNode* e6(Tokens t, int* curToken) {
 }
 
 // == !=
-ASTNode* e7(Tokens t, int* curToken) {
+ASTNode* e7(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e6(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case EQUAL:
             case NOT_EQUAL:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -518,14 +488,14 @@ ASTNode* e7(Tokens t, int* curToken) {
 }
 
 // (left) &
-ASTNode* e8(Tokens t, int* curToken) {
+ASTNode* e8(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e7(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case BIT_AND:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -538,14 +508,14 @@ ASTNode* e8(Tokens t, int* curToken) {
 }
    
 // &&
-ASTNode* e9(Tokens t, int* curToken) {
+ASTNode* e9(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e8(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case LOG_AND:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -558,14 +528,14 @@ ASTNode* e9(Tokens t, int* curToken) {
 }
 
 // ||
-ASTNode* e10(Tokens t, int* curToken) {
+ASTNode* e10(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e9(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case LOG_OR:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -578,14 +548,14 @@ ASTNode* e10(Tokens t, int* curToken) {
 }
 
 // ,
-ASTNode* e11(Tokens t, int* curToken) {
+ASTNode* e11(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e10(t, curToken);
     ASTNode* top = left; 
-    while (*curToken < t.size) {
-        switch (t.tokens[*curToken].type) {
+    while (*curToken < (*t).size()) {
+        switch ((*t)[*curToken].type) {
             case COMMA:
-                top = (ASTNode*)malloc(sizeof (ASTNode));
-                top->type = t.tokens[*curToken].type; 
+                top = new ASTNode;
+                top->type = (*t)[*curToken].type; 
                 break;
             default:
                 return top; 
@@ -597,16 +567,16 @@ ASTNode* e11(Tokens t, int* curToken) {
     return top;
 }
 
-ASTNode* expression(Tokens t, int* curToken) {
+ASTNode* expression(std::vector<Token>* t, uint64_t* curToken) {
     return e11(t, curToken);
 }
 
-ASTNode* statement(Tokens t, int* curToken) {
-    ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
-    switch (t.tokens[*curToken].type) {
+ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
+    ASTNode* out = new ASTNode;
+    switch ((*t)[*curToken].type) {
         case PRINT:
         case RETURN:
-            out->type = t.tokens[*curToken].type;
+            out->type = (*t)[*curToken].type;
             *curToken += 1;
             setChild(out, expression(t, curToken));
             break;
@@ -615,7 +585,7 @@ ASTNode* statement(Tokens t, int* curToken) {
             *curToken += 1;
             ASTNode* cond = expression(t, curToken);
             ASTNode* pass = block(t, curToken);
-            if (*curToken < t.size && t.tokens[*curToken].type == ELSE) {
+            if (*curToken < t->size() && (*t)[*curToken].type == ELSE) {
                 *curToken += 1;
                 setThreeChildren(out, cond, pass, block(t, curToken));
             } else {
@@ -631,32 +601,29 @@ ASTNode* statement(Tokens t, int* curToken) {
             break;
         }
         case IDENTIFIER: {
-            ASTNode* left = (ASTNode*)malloc(sizeof (ASTNode));
-            if (t.tokens[*curToken + 1].type == IDENTIFIER) {
+            ASTNode* left = new ASTNode;
+            if ((*t)[*curToken + 1].type == IDENTIFIER) {
                 // if the form is [TYPE] var_name
 
-                varTypes.insert({t.tokens[*curToken + 1].s, t.tokens[*curToken].s});
+                varTypes.insert({(*t)[*curToken + 1].s, (*t)[*curToken].s});
                 left->type = DECLARATION;
-                ASTNode* type = (ASTNode*)malloc(sizeof (ASTNode));
+                ASTNode* type = new ASTNode;
                 type->type = IDENTIFIER;
-                type->numChildren = 0;
-                type->identifier = t.tokens[*curToken].s;
+                type->identifier = (*t)[*curToken].s;
                 
-                ASTNode* varName = (ASTNode*)malloc(sizeof (ASTNode));
+                ASTNode* varName = new ASTNode;
                 varName->type = IDENTIFIER;
-                varName->numChildren = 0;
-                varName->identifier = t.tokens[*curToken + 1].s;
+                varName->identifier = (*t)[*curToken + 1].s;
 
                 setTwoChildren(left, type, varName);
                 *curToken += 2;
             } else {
                 // the form is var_name = value
                 // implicit type of int
-                varTypes.insert({t.tokens[*curToken].s, {"int", 3}});
-
+                varTypes.insert({(*t)[*curToken].s, "int"});
                 left = e2_5(t, curToken); // handle accesses (ex: abc.def = 4)
             }
-            if (t.tokens[*curToken].type == ASSIGN) {
+            if ((*t)[*curToken].type == ASSIGN) {
                 out->type = ASSIGN;
                 *curToken += 1; // skip past =
                 ASTNode* right = expression(t, curToken);
@@ -669,11 +636,9 @@ ASTNode* statement(Tokens t, int* curToken) {
         }
         case FUN: { // allow creation of a variable named fun
             out->type = ASSIGN;
-            ASTNode* l = (ASTNode*)malloc(sizeof (ASTNode));
+            ASTNode* l = new ASTNode;
             l->type = IDENTIFIER;
-            l->identifier.start = "fun";
-            l->identifier.len = 3;
-            l->numChildren = 0;
+            l->identifier = "fun";
             *curToken += 2; // skip past identifier and =
             ASTNode* r = expression(t, curToken);
             setTwoChildren(out, l, r);
@@ -681,54 +646,42 @@ ASTNode* statement(Tokens t, int* curToken) {
         }
         case CLASS: {
             out->type = CLASS;
-            ASTNode* name = (ASTNode*)malloc(sizeof (ASTNode));
+            ASTNode* name = new ASTNode;
             name->type = IDENTIFIER;
-            name->identifier = t.tokens[*curToken + 1].s;
-            name->numChildren = 0;
-            ASTNode* parent = (ASTNode*)malloc(sizeof (ASTNode));
+            name->identifier = (*t)[*curToken + 1].s;
+            ASTNode* parent = new ASTNode;
             parent->type = IDENTIFIER;
-            parent->numChildren = 0;
-            if (t.tokens[*curToken + 2].type == EXTENDS) {
-                parent->identifier = t.tokens[*curToken + 3].s;
+            if ((*t)[*curToken + 2].type == EXTENDS) {
+                parent->identifier = (*t)[*curToken + 3].s;
                 *curToken += 4;
             } else {
-                parent->identifier = {"Object", 6};
+                parent->identifier = "Object";
                 *curToken += 2;
             }
             setThreeChildren(out, name, parent, block(t, curToken));
-
             classNames.insert({name->identifier, new ClassNode(out)});
             break;
         }
         default:
-            free(out);
-            printf("!!! %d\n", t.tokens[*curToken].type);
+            delete out;
+            printf("!!! %d\n", (*t)[*curToken].type);
             fail(curToken);
             return NULL;
     }
     return out;
 }
 
-ASTNode* block(Tokens t, int* curToken) {
-    ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
+ASTNode* block(std::vector<Token>* t, uint64_t* curToken) {
+    ASTNode* out = new ASTNode;
     out->type = BLOCK;
     
     int idx = 0;
-    if (t.tokens[*curToken].type == OPEN_CURLY) {
-        out->numChildren = 10;
-        out->children = (ASTNode**)malloc(out->numChildren * sizeof (ASTNode*));
+    if ((*t)[*curToken].type == OPEN_CURLY) {
         *curToken += 1;
-        while (t.tokens[*curToken].type != CLOSE_CURLY) {
-            if (idx == out->numChildren) {
-                out->numChildren *= 2;
-                out->children = (ASTNode**)realloc(out->children, out->numChildren * sizeof (ASTNode*));
-            }
-
-            out->children[idx] = statement(t, curToken);
+        while ((*t)[*curToken].type != CLOSE_CURLY) {
+            out->children.push_back(statement(t, curToken));
             idx++;
         }
-        out->numChildren = idx;
-        out->children = (ASTNode**)realloc(out->children, out->numChildren * sizeof (ASTNode*));
         *curToken += 1;
     } else {
         setChild(out, statement(t, curToken));
@@ -737,11 +690,11 @@ ASTNode* block(Tokens t, int* curToken) {
 }
 
 void ast_fold(ASTNode* ast) {
-    for (int i = 0; i < ast->numChildren; i++) {
+    for (uint64_t i = 0; i < ast->children.size(); i++) {
         ast_fold(ast->children[i]);
     }
 
-    if (ast->numChildren == 2 && ast->children[0]->type == LITERAL && 
+    if (ast->children.size() == 2 && ast->children[0]->type == LITERAL && 
         ast->children[1]->type == LITERAL) {
 
         switch (ast->type) {
@@ -804,11 +757,10 @@ void ast_fold(ASTNode* ast) {
                 return;
         }
         ast->type = LITERAL;
-        for (int i = 0; i < ast->numChildren; i++) {
-            free(ast->children[i]);
+        for (uint64_t i = 0; i < ast->children.size(); i++) {
+            delete ast->children[i];
         }
-        ast->numChildren = 0;
-        free(ast->children);
+        ast->children.clear();
     }
     
 }
@@ -827,6 +779,7 @@ const char* tokenNames[37] = {
     "ELSE",
     "PRINT",
     "RETURN",
+    "ARROW",
     "PLUS",
     "MINUS",
     "MULT",
@@ -864,15 +817,13 @@ void ast_display(ASTNode* n, int depth) {
     }
     printf(" %s ", tokenNames[n->type]);
     if (n->type == IDENTIFIER) {
-        for (size_t i = 0; i < n->identifier.len; i++) {
-            printf("%c", n->identifier.start[i]);
-        }
+        printf("%s", n->identifier.c_str());
     } else if (n->type == LITERAL) {
         printf("%lu ", n->literal);
     }
     printf("\n");
 
-    for (int i = 0; i < n->numChildren; i++) {
+    for (uint64_t i = 0; i < n->children.size(); i++) {
         ast_display(n->children[i], depth + 1);
     }
 }
@@ -887,11 +838,13 @@ void tokens_display(Tokens t) {
  Frees the AST from memory.
 */
 void ast_free(ASTNode* ast) {
-    for (int i = 0; i < ast->numChildren; i++) {
+    for (uint64_t i = 0; i < ast->children.size(); i++) {
         ast_free(ast->children[i]);
     }
-    if (ast->numChildren > 0) {
-        free(ast->children);
-    }
-    free(ast);
+    // if (ast->children.size() > 0) {
+    //     for (std::vector<ASTNode *>::iterator i = ast->children.begin(); i != ast->children.end(); ++i) {
+    //         delete *i;
+    //     }
+    // }
+    delete ast;
 }
