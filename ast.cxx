@@ -78,11 +78,12 @@ bool match(const char* current, std::string token) {
  Returns a struct containing an array of tokens from a given fun program
  This array is guanranteed to be tightly bound (no extra memory used).
 */
+
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 32;
+    static const int NUM_TOKEN_TYPES = 33;
     static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ",", "."};
+        "&", "||", ",", ".", "new"};
     
     //static const int STARTING_NUM_TOKENS = 100;
 
@@ -181,9 +182,6 @@ std::vector<Token>* tokenize(const char* program) {
         }
     }
 
-    // allocate the 
-    //tokens = (Token*)realloc(tokens, idx * (sizeof (Token)));
-    //Tokens out = {tokens, idx};
     return tokens;
 }
 
@@ -350,9 +348,20 @@ ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
     return out;
 }
 
-// accessing attribute of returned object
-ASTNode* e2_5(std::vector<Token>* t, uint64_t* curToken) {
-    ASTNode* left = e2(t, curToken);
+ASTNode* e2_25(Tokens t, int* curToken) {
+    if (t.tokens[*curToken].type == NEW) {
+        ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
+        out->type = NEW;
+        *curToken += 1;
+        setChild(out, e2(t, curToken));
+        return out;
+    }
+    return e2(t, curToken);
+}
+
+// accessing attribute of returned object f(it).data
+ASTNode* e2_5(Tokens t, int* curToken) {
+    ASTNode* left = e2_25(t, curToken);
     ASTNode* top = left;
     while (*curToken < (*t).size()) {
         switch ((*t)[*curToken].type) {
@@ -364,7 +373,7 @@ ASTNode* e2_5(std::vector<Token>* t, uint64_t* curToken) {
                 return top; 
         }
         *curToken += 1;
-        setTwoChildren(top, left, e2(t, curToken));
+        setTwoChildren(top, left, e2_25(t, curToken));
         left = top;
     }
     return top;
@@ -612,9 +621,7 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
                 // the form is var_name = value
                 // implicit type of int
                 varTypes.insert({(*t)[*curToken].s, "int"});
-                left->type = IDENTIFIER;
-                left->identifier = (*t)[*curToken].s;
-                *curToken += 1;
+                left = e2_5(t, curToken); // handle accesses (ex: abc.def = 4)
             }
             if ((*t)[*curToken].type == ASSIGN) {
                 out->type = ASSIGN;
@@ -792,6 +799,7 @@ const char* tokenNames[37] = {
     "LOG_OR",
     "COMMA",
     "ACCESS",
+    "NEW",
     "IDENTIFIER",
     "LITERAL",
     "DECLARATION",

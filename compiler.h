@@ -17,10 +17,13 @@ public:
 private:
     ASTNode* astRoot; // ast for the program
     int labelCounter = 0;
+    ClassNode* selfType;
+    bool inClassDefinition = false;
 
     void compile_ast(ASTNode* ast);
     void preprocess();
     void loadBinaryChildrenReg(ASTNode* ast);
+    ClassNode* determineType(ASTNode* ast);
 
     void preprocessVars(ASTNode* ast,
         std::unordered_set<std::string>* varNames);

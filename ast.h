@@ -41,6 +41,7 @@ typedef enum {
     LOG_OR,
     COMMA,
     ACCESS,
+    NEW,
     IDENTIFIER,
     LITERAL,
     DECLARATION,
