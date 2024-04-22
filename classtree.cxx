@@ -36,13 +36,20 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
         */
 
         if (curStatement->type == DECLARATION) {
-            memberTypes.insert({curStatement->children[1]->identifier, 
-                                classNames.at(curStatement->children[0]->identifier)});
-            memberPos.insert({curStatement->children[1]->identifier, 8 * statementNum});
+            if (slice_equals(curStatement->children[0]->identifier, classASTNode->children[0]->identifier)) {
+                // if we have an instance variable of the same type of this class
+                // ex: Node class contains a Node instance variable to store a ref to next node
+                memberTypes.insert({curStatement->children[1]->identifier, this});
+            } else {
+                memberTypes.insert({curStatement->children[1]->identifier, 
+                    classNames.at(curStatement->children[0]->identifier)});
+            }
+           memberPos.insert({curStatement->children[1]->identifier, 8 * statementNum});
             memberIsFunc.insert({curStatement->children[1]->identifier, false});
         } else if (curStatement->type == ASSIGN) { 
             if (curStatement->children[0]->type == DECLARATION) {
-                memberTypes.insert({curStatement->children[0]->children[1]->identifier, classNames.at(curStatement->children[0]->children[0]->identifier)});
+                memberTypes.insert({curStatement->children[0]->children[1]->identifier,
+                    classNames.at(curStatement->children[0]->children[0]->identifier)});
                 memberPos.insert({curStatement->children[0]->children[1]->identifier, 8 * statementNum});
                 memberIsFunc.insert({curStatement->children[0]->children[1]->identifier, false});
             } else {

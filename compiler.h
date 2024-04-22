@@ -17,6 +17,8 @@ public:
 private:
     ASTNode* astRoot; // ast for the program
     int labelCounter = 0;
+    ClassNode* selfType;
+    bool inClassDefinition = false;
 
     void compile_ast(ASTNode* ast);
     void preprocess();
