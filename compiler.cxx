@@ -94,7 +94,7 @@ ClassNode* FunCompiler::determineType(ASTNode* ast) {
     switch (ast->type)
     {
     case IDENTIFIER:
-        if (slice_string_equals(ast->identifier, "self")) {
+        if (ast->identifier == "self") {
             return selfType;
         }
         return classNames.at(varTypes.at(ast->identifier));
@@ -126,23 +126,19 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    ret\n");
             printf("class%d_end:\n", labelNum);
             printf("    ldr x0, =class%d\n", labelNum);
-            printf("    ldr x1, =v_");
-            slice_print(ast->children[0]->identifier);
-            printf("\n");
+            printf("    ldr x1, =v_%s\n", ast->children[0]->identifier.c_str());
             printf("    str x0, [x1]\n");
             inClassDefinition = false;
             break;
         }
         case NEW: {
-            Slice type = ast->children[0]->children[0]->identifier;
+            std::string type = ast->children[0]->children[0]->identifier;
             ClassNode* classNode = classNames.at(type); 
 
             printf("    ldr x0, =%ld\n", classNode->getSize());
             printf("    bl malloc\n");
             printf("    str x0, [SP, #-16]!\n");
-            printf("    ldr x1, =v_");
-            slice_print(ast->children[0]->children[0]->identifier);
-            printf("\n");
+            printf("    ldr x1, =v_%s\n", ast->children[0]->children[0]->identifier.c_str());
             printf("    ldr x1, [x1]\n");
             printf("    str x10, [SP, #-16]!\n");
             printf("    mov x10, x0\n");

@@ -348,9 +348,9 @@ ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
     return out;
 }
 
-ASTNode* e2_25(Tokens t, int* curToken) {
-    if (t.tokens[*curToken].type == NEW) {
-        ASTNode* out = (ASTNode*)malloc(sizeof (ASTNode));
+ASTNode* e2_25(std::vector<Token>* t, uint64_t* curToken) {
+    if ((*t)[*curToken].type == NEW) {
+        ASTNode* out = new ASTNode;
         out->type = NEW;
         *curToken += 1;
         setChild(out, e2(t, curToken));
@@ -360,7 +360,7 @@ ASTNode* e2_25(Tokens t, int* curToken) {
 }
 
 // accessing attribute of returned object f(it).data
-ASTNode* e2_5(Tokens t, int* curToken) {
+ASTNode* e2_5(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e2_25(t, curToken);
     ASTNode* top = left;
     while (*curToken < (*t).size()) {
@@ -766,7 +766,7 @@ void ast_fold(ASTNode* ast) {
 }
 
 
-const char* tokenNames[37] = {
+const char* tokenNames[38] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
