@@ -80,26 +80,36 @@ bool match(const char* current, std::string token) {
 */
 
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 33;
-    static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "class", "extends", "fun", "while", "if", "else", "print",
+    static const int NUM_TOKEN_TYPES = 35;
+    static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "[", "]", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
         "&", "||", ",", ".", "new"};
-    
-    //static const int STARTING_NUM_TOKENS = 100;
-
-    //int size = STARTING_NUM_TOKENS;
     
     std::vector<Token> *tokens = new std::vector<Token>;
     int idx = 0;
     while (isspace(*program)) {
         program++;
     }
+               
+                
     while (*program != 0) {
+        //Pending testing
+        //array initializing syntax
+        if (match(program, TOKENS[OPEN_SQUARE]) && match(program + 1, TOKENS[CLOSE_SQUARE])) {
+            program += 2;
+            while (isspace(*program)) {
+                program++;
+            }
+        }
 
+            
+        
         bool foundToken = false;
         for (int i = 0; i < NUM_TOKEN_TYPES; i++) {
+
             if (match(program, TOKENS[i])) {
-                (*tokens).push_back({(ASTType)i, "", 0});
+    
+                tokens->push_back({(ASTType)i, "", 0});
                 idx++;
                 program += TOKENS[i].length();
                 foundToken = true;
@@ -241,8 +251,6 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
         case FUN:
             out->type = FUN;
             *curToken += 1;
-
-
             if ((*t)[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
                 Token parameterToken = (*t)[*curToken];
@@ -313,7 +321,7 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
     return out;
 }
 
-// access 
+// access obj.x[]
 ASTNode* e1_5(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* left = e1(t, curToken);
     ASTNode* out = left;
@@ -333,13 +341,17 @@ ASTNode* e1_5(std::vector<Token>* t, uint64_t* curToken) {
     return out;
 }
 
-// f(it)
+// f(it), arr[idx]
 ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* n = e1_5(t, curToken);
     ASTNode* out = n;
-    while (*curToken < (*t).size() && (*t)[*curToken].type == OPEN_PAREN) {
+    while (*curToken < t->size() && ((*t)[*curToken].type == OPEN_PAREN || (*t)[*curToken].type == OPEN_SQUARE)) {
         out = new ASTNode;
-        out->type = FUNC_CALL;
+        if ((*t)[*curToken].type == OPEN_PAREN) {
+            out->type = FUNC_CALL;
+        } else {
+            out->type = ARRAY_ACCESS;
+        }
         *curToken += 1; // consume open paren
         setTwoChildren(out, n, expression(t, curToken));
         *curToken += 1; // consume close paren
@@ -373,7 +385,7 @@ ASTNode* e2_5(std::vector<Token>* t, uint64_t* curToken) {
                 return top; 
         }
         *curToken += 1;
-        setTwoChildren(top, left, e2_25(t, curToken));
+        setTwoChildren(top, left, e_25(t, curToken));
         left = top;
     }
     return top;
@@ -395,7 +407,7 @@ ASTNode* e3(std::vector<Token>* t, uint64_t* curToken) {
                 return top; 
         }
         *curToken += 1;
-        setTwoChildren(top, left, e2(t, curToken));
+        setTwoChildren(top, left, e2_5(t, curToken));
         left = top;
     } 
     return top;
@@ -766,11 +778,13 @@ void ast_fold(ASTNode* ast) {
 }
 
 
-const char* tokenNames[38] = {
+const char* tokenNames[41] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
     "CLOSE_CURLY",
+    "OPEN_SQUARE",
+    "CLOSE_SQUARE",
     "CLASS",
     "EXTENDS",
     "FUN",
@@ -802,6 +816,7 @@ const char* tokenNames[38] = {
     "NEW",
     "IDENTIFIER",
     "LITERAL",
+    "ARRAY_ACCESS",
     "DECLARATION",
     "FUNC_CALL",
     "BLOCK"
