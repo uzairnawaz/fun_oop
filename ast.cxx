@@ -321,46 +321,39 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
     return out;
 }
 
-// access obj.x[]
-ASTNode* e1_5(std::vector<Token>* t, uint64_t* curToken) {
-    ASTNode* left = e1(t, curToken);
-    ASTNode* out = left;
-    while (*curToken < (*t).size()) {
+// f(it), arr[idx], .
+ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
+    ASTNode* n = e1(t, curToken);
+    ASTNode* out = n;
+    while (*curToken < t->size()) {
+        out = new ASTNode;
         switch ((*t)[*curToken].type) {
+            case OPEN_PAREN:
+                out->type = FUNC_CALL;
+                *curToken += 1; // consume open paren
+                setTwoChildren(out, n, expression(t, curToken));
+                *curToken += 1; // consume close paren
+                break;
+            case OPEN_SQUARE: 
+                out->type = ARRAY_ACCESS;
+                *curToken += 1; // consume open bracket 
+                setTwoChildren(out, n, expression(t, curToken));
+                *curToken += 1; // consume close bracket 
+                break;
             case ACCESS:
-                out = new ASTNode;
-                out->type = (*t)[*curToken].type; 
+                out->type = ACCESS;
+                *curToken += 1;
+                setTwoChildren(out, n, e1(t, curToken));
                 break;
             default:
-                return out; 
+                return n;
         }
-        *curToken += 1;
-        setTwoChildren(out, left, e1(t, curToken));
-        left = out;
-    }
-    return out;
-}
-
-// f(it), arr[idx]
-ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
-    ASTNode* n = e1_5(t, curToken);
-    ASTNode* out = n;
-    while (*curToken < t->size() && ((*t)[*curToken].type == OPEN_PAREN || (*t)[*curToken].type == OPEN_SQUARE)) {
-        out = new ASTNode;
-        if ((*t)[*curToken].type == OPEN_PAREN) {
-            out->type = FUNC_CALL;
-        } else {
-            out->type = ARRAY_ACCESS;
-        }
-        *curToken += 1; // consume open paren
-        setTwoChildren(out, n, expression(t, curToken));
-        *curToken += 1; // consume close paren
         n = out;
     }
     return out;
 }
 
-ASTNode* e2_25(std::vector<Token>* t, uint64_t* curToken) {
+ASTNode* e2_5(std::vector<Token>* t, uint64_t* curToken) {
     if ((*t)[*curToken].type == NEW) {
         ASTNode* out = new ASTNode;
         out->type = NEW;
@@ -369,26 +362,6 @@ ASTNode* e2_25(std::vector<Token>* t, uint64_t* curToken) {
         return out;
     }
     return e2(t, curToken);
-}
-
-// accessing attribute of returned object f(it).data
-ASTNode* e2_5(std::vector<Token>* t, uint64_t* curToken) {
-    ASTNode* left = e2_25(t, curToken);
-    ASTNode* top = left;
-    while (*curToken < (*t).size()) {
-        switch ((*t)[*curToken].type) {
-            case ACCESS:
-                top = new ASTNode;
-                top->type = (*t)[*curToken].type; 
-                break;
-            default:
-                return top; 
-        }
-        *curToken += 1;
-        setTwoChildren(top, left, e_25(t, curToken));
-        left = top;
-    }
-    return top;
 }
 
 // * / % (Left)
@@ -633,7 +606,7 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
                 // the form is var_name = value
                 // implicit type of int
                 varTypes.insert({(*t)[*curToken].s, "int"});
-                left = e2_5(t, curToken); // handle accesses (ex: abc.def = 4)
+                left = e2(t, curToken); // handle accesses (ex: abc.def = 4)
             }
             if ((*t)[*curToken].type == ASSIGN) {
                 out->type = ASSIGN;
