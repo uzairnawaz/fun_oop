@@ -427,6 +427,21 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 printf("    mov x1, x0\n");
                 printf("    ldr x0, [SP], #16\n");
                 printf("    str x1, [x0, #%ld]\n", idx); 
+            } else if (ast->children[0]->type == ARRAY_ACCESS) {
+                compile_ast(ast->children[0]->children[0]);
+                printf("    str x0, [SP, #-16]!\n");
+                compile_ast(ast->children[0]->children[1]);
+                printf("    str x0, [SP, #-16]!\n");
+                compile_ast(ast->children[1]);
+                printf("    mov x2, x0\n");
+                printf("    ldr x1, [SP], #16\n");
+                printf("    ldr x0, [SP], #16\n");
+                // arr[idx] = val
+                // x0 = arr, x1 = idx, x2 = val
+                printf("    ldr x4, =8\n");
+                printf("    mul x1, x1, x4\n");
+                printf("    add x0, x0, x1\n");
+                printf("    str x2, [x0]\n");
             } else {
                 // BAD! ERROR!!
             }
