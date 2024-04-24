@@ -42,12 +42,16 @@ void FunCompiler::preprocess() {
     printf("    .align 7\n");
     printf("v_argc:\n");
     printf("    .quad -1\n");
-    printf("v_it:\n");
+    printf("v_it0:\n");
     printf("    .quad 0\n");
+    printf("v_it1:\n");
+    printf("    .quad 0\n");
+
 
     std::unordered_set<std::string> varNames;
     varNames.insert("argc");
-    varNames.insert("it");
+    varNames.insert("it0");
+    varNames.insert("it1");
     preprocessVars(astRoot, &varNames);
 
     printf("    .text\n");
@@ -211,18 +215,32 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    b func%d_end\n", labelNum);
             printf("func%d:\n", labelNum);
             printf("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
-            printf("    ldr x2, =v_it\n");
-            printf("    ldr x1, [x2]\n");
-            printf("    str x1, [SP, #-16]!\n"); // store the old "it" value on the stack
-            printf("    str x0, [x2]\n"); // update the value of "it" with x0 (function input)
+            printf("    ldr x3, =v_it0\n");
+            printf("    ldr x2, [x3]\n");
+            printf("    str x2, [SP, #-16]!\n"); // store the old "it" value on the stack
+            printf("    str x0, [x3]\n"); // update the value of "it" with x0 (function input)
+
+            printf("    ldr x3, =v_it1\n");
+            printf("    ldr x2, [x3]\n");
+            printf("    str x2, [SP, #-16]!\n"); // store the old "it" value on the stack
+            printf("    str x1, [x3]\n"); // update the value of "it" with x0 (function input) // this needs to be x1
+
             compile_ast(ast->children[0]);  
 
             // default return  
             printf("    ldr x1, [SP], #16\n");
-            printf("    ldr x2, =v_it\n");
+            printf("    ldr x2, =v_it1\n");
             printf("    str x1, [x2]\n");
             printf("    ldp x29, x30, [SP], #16\n");
             printf("    mov x0, #0\n");
+
+            printf("    ldr x1, [SP], #16\n");
+            printf("    ldr x2, =v_it0\n");
+            printf("    str x1, [x2]\n");
+            printf("    ldp x29, x30, [SP], #16\n");
+            printf("    mov x0, #0\n");
+
+
             printf("    ret\n");
 
             printf("func%d_end:\n", labelNum);
@@ -269,15 +287,24 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 printf("    ldr x1, [SP], #16\n");
 
                 printf("    ldr x2, [SP], #16\n");
-                printf("    ldr x3, =v_it\n");
+                printf("    ldr x3, =v_it1\n");
                 printf("    str x2, [x3]\n");
+
+                printf("    ldr x2, [SP], #16\n");
+                printf("    ldr x3, =v_it0\n");
+                printf("    str x2, [x3]\n");
+
                 printf("    ldp x29, x30, [SP], #16\n");
 
                 printf("    br x1\n"); // call function, WITHOUT linking
             } else {
                 compile_ast(ast->children[0]);
                 printf("    ldr x1, [SP], #16\n");
-                printf("    ldr x2, =v_it\n");
+                printf("    ldr x2, =v_it1\n");
+                printf("    str x1, [x2]\n");
+
+                printf("    ldr x1, [SP], #16\n");
+                printf("    ldr x2, =v_it0\n");
                 printf("    str x1, [x2]\n");
                 printf("    ldp x29, x30, [SP], #16\n");
                 printf("    ret\n");
@@ -513,9 +540,21 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 compile_ast(ast->children[0]); // function address in x0
             }
             printf("    str x0, [SP, #-16]!\n");
-            compile_ast(ast->children[1]); // function input in x0
+
+            if (ast->children.size() >= 3) {
+                compile_ast(ast->children[2]);
+            }
+
+            printf("    str x0, [SP, #-16]!\n");
+
+            if (ast->children.size() >= 2) {
+                compile_ast(ast->children[1]); // input is automatically put in x0
+            }
             printf("    ldr x1, [SP], #16\n");
-            printf("    blr x1\n"); // call function (input remains in x0)
+            
+            printf("    ldr x2, [SP], #16\n");
+            printf("    blr x2\n"); // call function (input remains in x0)
+            
             if (ast->children[0]->type == ACCESS) {
                 printf("    ldr x10, [SP], #16\n");
             }

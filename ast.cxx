@@ -331,8 +331,22 @@ ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
             case OPEN_PAREN:
                 out->type = FUNC_CALL;
                 *curToken += 1; // consume open paren
-                setTwoChildren(out, n, expression(t, curToken));
-                *curToken += 1; // consume close paren
+
+
+                // setTwoChildren(out, n, expression(t, curToken));
+                // *curToken += 1; // consume close paren
+
+                setChild(out, n);
+                if ((*t)[*curToken].type != CLOSE_PAREN) {
+                    // current thing is a parameter
+                    do {
+                        setChild(out, expression(t, curToken));
+                        *curToken += 1;
+                    } while ((*t)[*curToken - 1].type == COMMA);
+                } else {
+                    *curToken += 1;
+                }
+                
                 break;
             case OPEN_SQUARE: 
                 out->type = ARRAY_ACCESS;
@@ -532,28 +546,28 @@ ASTNode* e10(std::vector<Token>* t, uint64_t* curToken) {
     return top;
 }
 
-// ,
-ASTNode* e11(std::vector<Token>* t, uint64_t* curToken) {
-    ASTNode* left = e10(t, curToken);
-    ASTNode* top = left; 
-    while (*curToken < (*t).size()) {
-        switch ((*t)[*curToken].type) {
-            case COMMA:
-                top = new ASTNode;
-                top->type = (*t)[*curToken].type; 
-                break;
-            default:
-                return top; 
-        }
-        *curToken += 1;
-        setTwoChildren(top, left, e10(t, curToken));
-        left = top;
-    }
-    return top;
-}
+// // ,
+// ASTNode* e11(std::vector<Token>* t, uint64_t* curToken) {
+//     ASTNode* left = e10(t, curToken);
+//     ASTNode* top = left; 
+//     while (*curToken < (*t).size()) {
+//         switch ((*t)[*curToken].type) {
+//             case COMMA:
+//                 top = new ASTNode;
+//                 top->type = (*t)[*curToken].type; 
+//                 break;
+//             default:
+//                 return top; 
+//         }
+//         *curToken += 1;
+//         setTwoChildren(top, left, e10(t, curToken));
+//         left = top;
+//     }
+//     return top;
+// }
 
 ASTNode* expression(std::vector<Token>* t, uint64_t* curToken) {
-    return e11(t, curToken);
+    return e10(t, curToken);
 }
 
 ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
