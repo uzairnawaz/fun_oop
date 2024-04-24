@@ -41,12 +41,23 @@ void FunCompiler::preprocess() {
     printf("    .align 7\n");
     printf("v_argc:\n");
     printf("    .quad -1\n");
-    printf("v_it:\n");
-    printf("    .quad 0\n");
+
+    for (int i = 0; i < 8; i++) {
+        printf("v_it%d:\n", i);
+        printf("    .quad 0\n");
+    }
 
     std::unordered_set<std::string> varNames;
     varNames.insert("argc");
-    varNames.insert("it");
+    varNames.insert("it0");
+    varNames.insert("it1");
+    varNames.insert("it2");
+    varNames.insert("it3");
+    varNames.insert("it4");
+    varNames.insert("it5");
+    varNames.insert("it6");
+    varNames.insert("it7");
+    
     preprocessVars(astRoot, &varNames);
 
     printf("    .text\n");
@@ -217,16 +228,23 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    b func%d_end\n", labelNum);
             printf("func%d:\n", labelNum);
             printf("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
-            printf("    ldr x2, =v_it\n");
-            printf("    ldr x1, [x2]\n");
-            printf("    str x1, [SP, #-16]!\n"); // store the old "it" value on the stack
-            printf("    str x0, [x2]\n"); // update the value of "it" with x0 (function input)
+
+            for (int i = 0; i < 8; i++) {
+                printf("    ldr x9, =v_it%d\n", i);
+                printf("    ldr x8, [x9]\n");
+                printf("    str x8, [SP, #-16]!\n"); // store the old "it" value on the stack
+                printf("    str x%d, [x9]\n", i); // update the value of "it" with x0 (function input)
+            }
+
             compile_ast(ast->children[0]);  
 
             // default return  
-            printf("    ldr x1, [SP], #16\n");
-            printf("    ldr x2, =v_it\n");
-            printf("    str x1, [x2]\n");
+            for (int i = 7; i >= 0; i--) {
+                printf("    ldr x1, [SP], #16\n");
+                printf("    ldr x2, =v_it%d\n", i);
+                printf("    str x1, [x2]\n");
+            }
+
             printf("    ldp x29, x30, [SP], #16\n");
             printf("    mov x0, #0\n");
             printf("    ret\n");
@@ -274,17 +292,24 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 compile_ast(ast->children[0]->children[1]); // function input stored in x0
                 printf("    ldr x1, [SP], #16\n");
 
-                printf("    ldr x2, [SP], #16\n");
-                printf("    ldr x3, =v_it\n");
-                printf("    str x2, [x3]\n");
+                for (int i = 7; i >= 0; i--) {
+                    printf("    ldr x2, [SP], #16\n");
+                    printf("    ldr x3, =v_it%d\n", i);
+                    printf("    str x2, [x3]\n");
+                }
+
                 printf("    ldp x29, x30, [SP], #16\n");
 
                 printf("    br x1\n"); // call function, WITHOUT linking
             } else {
                 compile_ast(ast->children[0]);
-                printf("    ldr x1, [SP], #16\n");
-                printf("    ldr x2, =v_it\n");
-                printf("    str x1, [x2]\n");
+
+                for (int i = 7; i >= 0; i--) {
+                    printf("    ldr x1, [SP], #16\n");
+                    printf("    ldr x2, =v_it%d\n", i);
+                    printf("    str x1, [x2]\n");
+                }
+                
                 printf("    ldp x29, x30, [SP], #16\n");
                 printf("    ret\n");
             }
@@ -519,9 +544,25 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 compile_ast(ast->children[0]); // function address in x0
             }
             printf("    str x0, [SP, #-16]!\n");
-            compile_ast(ast->children[1]); // function input in x0
-            printf("    ldr x1, [SP], #16\n");
-            printf("    blr x1\n"); // call function (input remains in x0)
+
+            for (uint64_t i = 0; i < 8; i++) {
+                if (ast->children.size() >= (i + 2)) { // i + 1
+                    compile_ast(ast->children[i + 1]);
+                    printf("    str x0, [SP, #-16]!\n");
+                } else {
+                    break;
+                }
+            }
+
+            for (int i = 7; i >= 0; i--) {
+                if (((int) ast->children.size()) >= (i + 2)) { // i + 1
+                    printf("    ldr x%d, [SP], #16\n", i);
+                }
+            }
+        
+            printf("    ldr x8, [SP], #16\n");
+            printf("    blr x8\n"); // call function (input remains in x0)
+            
             if (ast->children[0]->type == ACCESS) {
                 printf("    ldr x10, [SP], #16\n");
             }
