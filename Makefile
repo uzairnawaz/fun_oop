@@ -64,7 +64,7 @@ ${ASM_FILES}: %.s : Makefile $B/funcc %.fun
 
 ${ARM_FILES}: %.arm : Makefile %.s
 	@echo "failed to run" > $@
-	-${ARM_GCC} -static -o $*.arm $*.s
+	-${ARM_GCC} -static -o $*.arm $*.s heap.c heap.h
 
 ${OUT_FILES}: %.out : Makefile %.arm %.args
 	@echo "failed to run" > $@
