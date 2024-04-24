@@ -8,7 +8,6 @@
 */
 void FunCompiler::compile(const char* program) {
     astRoot = ast_create(program);
-
     // ast_display(astRoot, 0);
     // for (auto it=varTypes.begin(); it!=varTypes.end(); it++) {
     //     slice_print(it->first);
@@ -154,7 +153,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             ClassNode* classNode = classNames.at(type); 
             if (ast->children[0]->type == FUNC_CALL) { // instantiating a new object
                 printf("    ldr x0, =%ld\n", classNode->getSize());
-                printf("    bl malloc\n");
+                printf("    bl fun_malloc\n");
                 printf("    str x0, [SP, #-16]!\n");
                 printf("    ldr x1, =v_%s\n", ast->children[0]->children[0]->identifier.c_str());
                 printf("    ldr x1, [x1]\n");
@@ -168,12 +167,13 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 compile_ast(ast->children[0]->children[1]);
                 if (classNode == 0) { // if this is an int array
                     printf("    ldr x1, =8\n");
-                    printf("    bl calloc\n");
+                    printf("    mul x0, x0, x1\n");
+                    printf("    bl fun_malloc\n");
                 } else {
                     printf("    str x0, [SP, #-16]!\n");
                     printf("    ldr x1, =8\n");//%ld\n", classNode->getSize());
                     printf("    mul x0, x0, x1\n");
-                    printf("    bl malloc\n");
+                    printf("    bl fun_malloc\n");
                     printf("    ldr x2, [SP], #16\n"); // loading from stack the length of array
                     printf("    str x10, [SP, #-16]!\n"); // store old "self" on the stack
                     printf("    str x0, [SP, #-16]!\n"); // storing pointer to first array element
@@ -185,7 +185,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                     printf("    str x2, [SP, #-16]!\n"); // x2 = loop control var (starts at arr length and goes to 0)
                     printf("    str x3, [SP, #-16]!\n"); // x3 = mem address of cur element in arr
                     printf("    ldr x0, =%ld\n", classNode->getSize());
-                    printf("    bl malloc\n");
+                    printf("    bl fun_malloc\n");
                     printf("    ldr x3, [SP]\n");
                     printf("    str x0, [x3]\n");
                     printf("    mov x10, x0\n"); // update "self"
