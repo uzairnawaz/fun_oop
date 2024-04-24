@@ -215,6 +215,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    b func%d_end\n", labelNum);
             printf("func%d:\n", labelNum);
             printf("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
+            
             printf("    ldr x3, =v_it0\n");
             printf("    ldr x2, [x3]\n");
             printf("    str x2, [SP, #-16]!\n"); // store the old "it" value on the stack
@@ -223,7 +224,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    ldr x3, =v_it1\n");
             printf("    ldr x2, [x3]\n");
             printf("    str x2, [SP, #-16]!\n"); // store the old "it" value on the stack
-            printf("    str x1, [x3]\n"); // update the value of "it" with x0 (function input) // this needs to be x1
+            printf("    str x1, [x3]\n"); // update the value of "it" with x0 (function input)
 
             compile_ast(ast->children[0]);  
 
@@ -231,16 +232,13 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    ldr x1, [SP], #16\n");
             printf("    ldr x2, =v_it1\n");
             printf("    str x1, [x2]\n");
-            printf("    ldp x29, x30, [SP], #16\n");
-            printf("    mov x0, #0\n");
 
             printf("    ldr x1, [SP], #16\n");
             printf("    ldr x2, =v_it0\n");
             printf("    str x1, [x2]\n");
+
             printf("    ldp x29, x30, [SP], #16\n");
             printf("    mov x0, #0\n");
-
-
             printf("    ret\n");
 
             printf("func%d_end:\n", labelNum);
@@ -546,7 +544,6 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             }
 
             printf("    str x0, [SP, #-16]!\n");
-
             if (ast->children.size() >= 2) {
                 compile_ast(ast->children[1]); // input is automatically put in x0
             }
