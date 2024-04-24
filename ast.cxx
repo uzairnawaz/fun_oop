@@ -19,7 +19,7 @@ void fail(uint64_t* curToken) {
 }
 
 void syntax_error(Token recieved, uint64_t* curToken, std::string expected) {
-    printf("SYNTAX ERROR: \nRecieved: %s (token #%ld).\nExpected: %s.\n", tokenNames[recieved.type], *curToken, expected.c_str());
+    printf("SYNTAX ERROR:\n----------\nRecieved: '%s' (token #%ld).\nExpected: %s.\n", tokenNames[recieved.type], *curToken, expected.c_str());
     exit(1);
 }
 
@@ -710,7 +710,7 @@ ASTNode* block(std::vector<Token>* t, uint64_t* curToken) {
         *curToken += 1;
         while ((*t)[*curToken].type != CLOSE_CURLY) {
             if (*curToken >= t->size()) {
-                printf("SYNTAX ERROR: \nNo associated CLOSE_CURLY with the OPEN_CURLY (token #%ld) ", openCurlyToken);
+                printf("UNMATCHED CLOSE_CURLY ERROR:\n----------\nNo associated CLOSE_CURLY with the OPEN_CURLY (token #%ld) ", openCurlyToken);
                 exit(1);
             }
 
