@@ -102,7 +102,7 @@ ClassNode* FunCompiler::determineType(ASTNode* ast) {
         // TODO :)
         return nullptr;
     case ACCESS:
-        return determineType(ast->children[0])->memberTypes.at(ast->children[1]->identifier);
+        return determineType(ast->children[0])->getMemberType(ast->children[1]->identifier);
     case ARRAY_ACCESS:
         return determineType(ast->children[0]);
     default:
@@ -133,6 +133,12 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             printf("    b class%d_end\n", labelNum);
             printf("class%d:\n", labelNum);
             printf("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
+            if (selfType->getParent() != 0) {
+                // branch to parent
+                printf("    ldr x0, =v_%s\n", ast->children[1]->identifier.c_str());
+                printf("    ldr x0, [x0]\n");
+                printf("    blr x0\n");
+            }
             compile_ast(ast->children[2]);
             printf("    ldp x29, x30, [SP], #16\n"); 
             printf("    ret\n");
@@ -200,7 +206,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
         }
         case ACCESS: {
             ClassNode* type = determineType(ast->children[0]);
-            uint64_t idx = type->memberPos.at(ast->children[1]->identifier);
+            uint64_t idx = type->getMemberPos(ast->children[1]->identifier);
 
             compile_ast(ast->children[0]);
             printf("    ldr x0, [x0, #%ld]\n", idx);
@@ -411,15 +417,15 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                     compile_ast(ast->children[1]);
                     uint64_t idx;
                     if (ast->children[0]->type == DECLARATION) {
-                        idx = selfType->memberPos.at(ast->children[0]->children[1]->identifier);
+                        idx = selfType->getMemberPos(ast->children[0]->children[1]->identifier);
                     } else {
-                        idx = selfType->memberPos.at(ast->children[0]->identifier);
+                        idx = selfType->getMemberPos(ast->children[0]->identifier);
                     }
                     printf("    str x0, [x10, #%ld]\n", idx);
                 }
             } else if (ast->children[0]->type == ACCESS) {
                 ClassNode* type = determineType(ast->children[0]->children[0]);
-                uint64_t idx = type->memberPos.at(ast->children[0]->children[1]->identifier);
+                uint64_t idx = type->getMemberPos(ast->children[0]->children[1]->identifier);
 
                 compile_ast(ast->children[0]->children[0]);
                 printf("    str x0, [SP, #-16]!\n");
@@ -503,7 +509,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
         case FUNC_CALL:  
             if (ast->children[0]->type == ACCESS) {
                 ClassNode* type = determineType(ast->children[0]->children[0]);
-                uint64_t idx = type->memberPos.at(ast->children[0]->children[1]->identifier);
+                uint64_t idx = type->getMemberPos(ast->children[0]->children[1]->identifier);
 
                 compile_ast(ast->children[0]->children[0]);
                 printf("    str x10, [SP, #-16]!\n");
