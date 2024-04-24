@@ -18,6 +18,11 @@ void fail(uint64_t* curToken) {
     exit(1);
 }
 
+void syntax_error(Token recieved, uint64_t* curToken, std::string expected) {
+    printf("SYNTAX ERROR:\n----------\nRecieved: '%s' (token #%ld).\nExpected: %s.\n", tokenNames[recieved.type], *curToken, expected.c_str());
+    exit(1);
+}
+
 /*
  Returns the literal at the start of the given string, and increments the pointer to start after
  the literal.
@@ -253,11 +258,24 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             *curToken += 1;
             if ((*t)[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
+
                 Token parameterToken = (*t)[*curToken];
-                *curToken += 4; // read in type and close_paren and the arrow and the open
+                if ((*t)[*curToken].type != IDENTIFIER) syntax_error((*t)[*curToken], curToken, "an 'IDENTIFIER'");
+                *curToken += 1;
+                if ((*t)[*curToken].type != CLOSE_PAREN) syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
+                *curToken += 1;
+                if ((*t)[*curToken].type != ARROW) syntax_error((*t)[*curToken], curToken, "an 'ARROW'");
+                *curToken += 1;
+                if ((*t)[*curToken].type != OPEN_PAREN) syntax_error((*t)[*curToken], curToken, "an 'OPEN_PAREN'");
+                *curToken += 1;
+
+
                 Token returnToken = (*t)[*curToken];
-                *curToken += 2;
-              
+                 *curToken += 1;
+
+                if ((*t)[*curToken].type != CLOSE_PAREN) syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
+                *curToken += 1;
+
                 ASTNode* paramNode = new ASTNode;
                 paramNode->type = parameterToken.type;
                 paramNode->identifier = parameterToken.s;
@@ -286,6 +304,10 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             *curToken += 1; // consume open paren
             free(out);
             out = expression(t, curToken);
+
+            if ((*t)[*curToken].type != CLOSE_PAREN) {
+                syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
+            }
             break;
         /* 
         if we see if, while, else at e1, then it must be a var, not a keyword
@@ -314,7 +336,8 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             out->identifier = "print";
             break;
         default:
-            fail(curToken);
+            syntax_error((*t)[*curToken], curToken, "'fun', 'identifier', 'literal', or 'open_paren'");
+            // fail(curToken);
             break;
     }
     *curToken += 1;
@@ -331,8 +354,28 @@ ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
             case OPEN_PAREN:
                 out->type = FUNC_CALL;
                 *curToken += 1; // consume open paren
-                setTwoChildren(out, n, expression(t, curToken));
-                *curToken += 1; // consume close paren
+
+
+                // setTwoChildren(out, n, expression(t, curToken));
+                // *curToken += 1; // consume close paren
+
+                setChild(out, n);
+                if ((*t)[*curToken].type != CLOSE_PAREN) {
+                    // current thing is a parameter
+                    do {
+                        setChild(out, expression(t, curToken));
+                        if ((*t)[*curToken].type != CLOSE_PAREN && (*t)[*curToken].type != COMMA) {
+                            syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN' or 'COMMA'");
+                        }
+                        *curToken += 1;
+                    } while ((*t)[*curToken - 1].type == COMMA);
+                } else {
+                    if ((*t)[*curToken].type != CLOSE_PAREN) {
+                        syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
+                    }
+                    *curToken += 1;
+                }
+                
                 break;
             case OPEN_SQUARE: 
                 out->type = ARRAY_ACCESS;
@@ -532,28 +575,28 @@ ASTNode* e10(std::vector<Token>* t, uint64_t* curToken) {
     return top;
 }
 
-// ,
-ASTNode* e11(std::vector<Token>* t, uint64_t* curToken) {
-    ASTNode* left = e10(t, curToken);
-    ASTNode* top = left; 
-    while (*curToken < (*t).size()) {
-        switch ((*t)[*curToken].type) {
-            case COMMA:
-                top = new ASTNode;
-                top->type = (*t)[*curToken].type; 
-                break;
-            default:
-                return top; 
-        }
-        *curToken += 1;
-        setTwoChildren(top, left, e10(t, curToken));
-        left = top;
-    }
-    return top;
-}
+// // ,
+// ASTNode* e11(std::vector<Token>* t, uint64_t* curToken) {
+//     ASTNode* left = e10(t, curToken);
+//     ASTNode* top = left; 
+//     while (*curToken < (*t).size()) {
+//         switch ((*t)[*curToken].type) {
+//             case COMMA:
+//                 top = new ASTNode;
+//                 top->type = (*t)[*curToken].type; 
+//                 break;
+//             default:
+//                 return top; 
+//         }
+//         *curToken += 1;
+//         setTwoChildren(top, left, e10(t, curToken));
+//         left = top;
+//     }
+//     return top;
+// }
 
 ASTNode* expression(std::vector<Token>* t, uint64_t* curToken) {
-    return e11(t, curToken);
+    return e10(t, curToken);
 }
 
 ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
@@ -649,8 +692,9 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
         }
         default:
             delete out;
-            printf("!!! %d\n", (*t)[*curToken].type);
-            fail(curToken);
+            syntax_error((*t)[*curToken], curToken, "a statement: 'PRINT', 'RETURN', 'IF', 'WHILE', 'IDENTIFIER', 'FUN', or 'CLASS'");
+            // printf("!!! %d\n", (*t)[*curToken].type);
+            // fail(curToken);
             return NULL;
     }
     return out;
@@ -662,8 +706,14 @@ ASTNode* block(std::vector<Token>* t, uint64_t* curToken) {
     
     int idx = 0;
     if ((*t)[*curToken].type == OPEN_CURLY) {
+        uint64_t openCurlyToken = *curToken;
         *curToken += 1;
         while ((*t)[*curToken].type != CLOSE_CURLY) {
+            if (*curToken >= t->size()) {
+                printf("UNMATCHED CLOSE_CURLY ERROR:\n----------\nNo associated CLOSE_CURLY with the OPEN_CURLY (token #%ld) ", openCurlyToken);
+                exit(1);
+            }
+
             out->children.push_back(statement(t, curToken));
             idx++;
         }

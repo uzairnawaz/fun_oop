@@ -10,6 +10,7 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
     parent = classNames.at(classASTNode->children[1]->identifier);
 
     ASTNode* block = classASTNode->children[2];
+    int memPosition = parent == nullptr ? 0 : parent->getSize();
     for (uint64_t statementNum = 0; statementNum < block->children.size(); statementNum++) {
         ASTNode* curStatement = block->children[statementNum];
 
@@ -34,38 +35,66 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
             type   name
             
         */
-
-        if (curStatement->type == DECLARATION) {
-            if (curStatement->children[0]->identifier == classASTNode->children[0]->identifier) {
-                // if we have an instance variable of the same type of this class
-                // ex: Node class contains a Node instance variable to store a ref to next node
-                memberTypes.insert({curStatement->children[1]->identifier, this});
-            } else {
-                memberTypes.insert({curStatement->children[1]->identifier, 
-                    classNames.at(curStatement->children[0]->identifier)});
+        if (!containsMember(curStatement->children[0]->identifier)) {
+            if (curStatement->type == DECLARATION) {
+                if (curStatement->children[0]->identifier == classASTNode->children[0]->identifier) {
+                    // if we have an instance variable of the same type of this class
+                    // ex: Node class contains a Node instance variable to store a ref to next node
+                    memberTypes.insert({curStatement->children[1]->identifier, this});
+                } else {
+                    memberTypes.insert({curStatement->children[1]->identifier, 
+                        classNames.at(curStatement->children[0]->identifier)});
+                }
+            memberPos.insert({curStatement->children[1]->identifier, memPosition});
+                memberIsFunc.insert({curStatement->children[1]->identifier, false});
+            } else if (curStatement->type == ASSIGN) { 
+                if (curStatement->children[0]->type == DECLARATION) {
+                    memberTypes.insert({curStatement->children[0]->children[1]->identifier,
+                        classNames.at(curStatement->children[0]->children[0]->identifier)});
+                    memberPos.insert({curStatement->children[0]->children[1]->identifier, memPosition});
+                    memberIsFunc.insert({curStatement->children[0]->children[1]->identifier, false});
+                } else {
+                    memberIsFunc.insert({curStatement->children[0]->identifier, curStatement->children[1]->type == FUN});
+                    memberTypes.insert({curStatement->children[0]->identifier, 
+                        classNames.at("int")});
+                    memberPos.insert({curStatement->children[0]->identifier, memPosition});
+                }
             }
-           memberPos.insert({curStatement->children[1]->identifier, 8 * statementNum});
-            memberIsFunc.insert({curStatement->children[1]->identifier, false});
-        } else if (curStatement->type == ASSIGN) { 
-            if (curStatement->children[0]->type == DECLARATION) {
-                memberTypes.insert({curStatement->children[0]->children[1]->identifier,
-                    classNames.at(curStatement->children[0]->children[0]->identifier)});
-                memberPos.insert({curStatement->children[0]->children[1]->identifier, 8 * statementNum});
-                memberIsFunc.insert({curStatement->children[0]->children[1]->identifier, false});
-            } else {
-                memberIsFunc.insert({curStatement->children[0]->identifier, curStatement->children[1]->type == FUN});
-                memberTypes.insert({curStatement->children[0]->identifier, 
-                    classNames.at("int")});
-                memberPos.insert({curStatement->children[0]->identifier, 8 * statementNum});
-            }
+            memPosition += 8;
         }
     }
 }
 
 size_t ClassNode::getSize() {
-    return memberPos.size() * sizeof (uint64_t);
+    return (parent == nullptr ? 0 : parent->getSize()) + memberTypes.size() * sizeof (uint64_t);
 }
 
 ClassNode* ClassNode::getParent() {
     return parent;
+}
+
+bool ClassNode::containsMember(std::string member) {
+    if (memberTypes.find(member) == memberTypes.end()) { 
+        return parent == nullptr ? false : parent->containsMember(member);
+    }
+    return true;
+}
+
+ClassNode* ClassNode::getMemberType(std::string member) {
+    if (memberTypes.find(member) == memberTypes.end()) { 
+        return parent->getMemberType(member);
+    }
+    return memberTypes.at(member);
+}
+
+uint64_t ClassNode::getMemberPos(std::string member) {
+    if (memberPos.find(member) == memberPos.end()) { 
+        return parent->getMemberPos(member);
+    }
+    return memberPos.at(member);
+}
+
+std::string& SSS (const char* s)
+{
+    return *(new std::string(s));
 }

@@ -3,7 +3,7 @@ class Dog {
     age = 1
     size = 4
     makeBigger = fun {
-        self.size = self.size + it
+        self.size = self.size + it0
     }
     bark = fun {
         print 9999 
@@ -15,7 +15,7 @@ class Cat {
     Dog enemy = new Dog(0)
     Cat friend
     makeOlder = fun {
-        self.age = self.age + it
+        self.age = self.age + it0
     }
 }
 
