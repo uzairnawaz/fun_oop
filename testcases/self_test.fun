@@ -2,20 +2,20 @@
 class Dog {
     age = 1
     size = 4
-    makeBigger = fun {
-        self.size = self.size + it
+    makeBigger = fun (int) -> (int) {
+        self.size = self.size + it0
     }
-    bark = fun {
+    bark = fun () -> (int) {
         print 9999 
     }
 }
 
 class Cat {
     age = 5
-    Dog enemy = new Dog(0)
+    Dog enemy = new Dog()
     Cat friend
-    makeOlder = fun {
-        self.age = self.age + it
+    makeOlder = fun (int) -> (int) {
+        self.age = self.age + it0
     }
 }
 

@@ -1,7 +1,7 @@
 class Abc {
     idk = 2
     idk2 = 4
-    idkFunc = fun {
+    idkFunc = fun () -> (int) {
         return self.idk + self.idk2
     }
 }
@@ -9,10 +9,10 @@ class Abc {
 class Animal {
     size = 10
     height = 4
-    randomFunc = fun {
+    randomFunc = fun () -> (int) {
         return self.size * self.height
     }
-    Abc abc = new Abc(0)
+    Abc abc = new Abc()
 }
 
 Animal[] arr = new Animal[4]
@@ -21,10 +21,10 @@ i = 0
 while (i < 4) {
     print arr[i].size
     print arr[i].height
-    print arr[i].randomFunc(0)
+    print arr[i].randomFunc()
     print arr[i].abc.idk
     print arr[i].abc.idk2
-    print arr[i].abc.idkFunc(0)
+    print arr[i].abc.idkFunc()
     i = i + 1
 }
 
@@ -35,7 +35,7 @@ while (i < 4) {
     print arr[i].size
     i = i + 1
 }
-arr[1] = new Animal(0)
+arr[1] = new Animal()
 i = 0
 while (i < 4) {
     print arr[i].size

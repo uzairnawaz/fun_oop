@@ -84,3 +84,5 @@ void tokens_display(Tokens t);
 ASTNode* expression(std::vector<Token>* t, uint64_t* curToken);
 ASTNode* block(std::vector<Token>* t, uint64_t* curToken);
 ASTNode* statement(std::vector<Token>* t, uint64_t* curToken);
+
+extern const char* tokenNames[41];
