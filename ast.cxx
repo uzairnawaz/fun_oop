@@ -80,10 +80,10 @@ bool match(const char* current, std::string token) {
 */
 
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 35;
+    static const int NUM_TOKEN_TYPES = 37;
     static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "[", "]", "class", "extends", "fun", "while", "if", "else", "print",
         "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ",", ".", "new"};
+        "&", "||", ",", ".", "new", "public", "private"};
     
     std::vector<Token> *tokens = new std::vector<Token>;
     int idx = 0;
@@ -584,6 +584,65 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             ASTNode* condition = expression(t, curToken);
             setTwoChildren(out, condition, block(t, curToken));
             break;
+        }
+        case PRIVATE: {
+            ASTNode* left = new ASTNode;
+            bool is_private_object = (*t)[*curToken + 1].type == IDENTIFIER && (*t)[*curToken + 2].type == IDENTIFIER;
+            if (is_private_object) {
+                // if the form is [ACCESS] [TYPE] var_name
+                varTypes.insert({(*t)[*curToken + 2].s, (*t)[*curToken + 1].s});
+                left->type = DECLARATION;
+
+                ASTNode* access = new ASTNode;
+                access->type = PRIVATE;
+                access->identifier = (*t)[*curToken].s;
+
+                ASTNode* type = new ASTNode;
+                type->type = IDENTIFIER;
+                type->identifier = (*t)[*curToken + 1].s;
+                
+                ASTNode* varName = new ASTNode;
+                varName->type = IDENTIFIER;
+                varName->identifier = (*t)[*curToken + 2].s;
+
+                setThreeChildren(left, type, access, varName);
+                *curToken += 3;
+            } else {
+                // the form is var_name = value
+                // implicit type of int
+                
+                left->type = DECLARATION;
+
+                ASTNode* access = new ASTNode;
+                access->type = PRIVATE;
+                access->identifier = (*t)[*curToken].s;
+
+                ASTNode* type = new ASTNode;
+                type->type = IDENTIFIER;
+                type->identifier = "int";
+
+                ASTNode* varName = new ASTNode;
+                varName->type = IDENTIFIER;
+                varName->identifier = (*t)[*curToken + 1].s;
+                
+                *curToken += 1;
+                varTypes.insert({(*t)[*curToken].s, "int"});
+                //ASTNode* func_or_int = e2(t, curToken); // handle accesses (ex: abc.def = 4)
+                setThreeChildren(left, type, access, varName);
+            }
+            if ((*t)[*curToken].type == ASSIGN) {
+                out->type = ASSIGN;
+                *curToken += 1; // skip past =
+                ASTNode* right = expression(t, curToken);
+                setTwoChildren(out, left, right);
+            } else {
+                free(out);
+                out = left;
+            }
+            break;
+        }
+        case PUBLIC: {
+            *curToken += 1;
         }
         case IDENTIFIER: {
             ASTNode* left = new ASTNode;
