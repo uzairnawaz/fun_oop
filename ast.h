@@ -21,6 +21,7 @@ typedef enum {
     IF,
     ELSE,
     PRINT,
+    PRINTC,
     RETURN,
     ARROW,
     PLUS,
@@ -85,4 +86,4 @@ ASTNode* expression(std::vector<Token>* t, uint64_t* curToken);
 ASTNode* block(std::vector<Token>* t, uint64_t* curToken);
 ASTNode* statement(std::vector<Token>* t, uint64_t* curToken);
 
-extern const char* tokenNames[43];
+extern const char* tokenNames[44];

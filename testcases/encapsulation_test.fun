@@ -17,5 +17,5 @@ class ConcertHall extends Building {
 }
 
 Building x = new Building()
-print x.x1()
+print x.x2()
 
