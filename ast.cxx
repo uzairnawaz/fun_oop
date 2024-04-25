@@ -259,35 +259,48 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             if ((*t)[*curToken].type == OPEN_PAREN) {
                 *curToken += 1;
 
-                Token parameterToken = (*t)[*curToken];
-                if ((*t)[*curToken].type != IDENTIFIER) syntax_error((*t)[*curToken], curToken, "an 'IDENTIFIER'");
+                std::vector<ASTNode*> list;
+
+                if ((*t)[*curToken].type != CLOSE_PAREN) {
+                    // current thing is a parameter
+                    do {
+                        list.push_back(expression(t, curToken));
+                        if ((*t)[*curToken].type != CLOSE_PAREN && (*t)[*curToken].type != COMMA) {
+                            syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN' or 'COMMA' in function parameter type descriptions");
+                        }
+                        *curToken += 1;
+                    } while ((*t)[*curToken - 1].type == COMMA);
+                } else {
+                    *curToken += 1;
+                }
+
+                if ((*t)[*curToken].type != ARROW) syntax_error((*t)[*curToken], curToken, "an 'ARROW' in function type declaration");
                 *curToken += 1;
-                if ((*t)[*curToken].type != CLOSE_PAREN) syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
-                *curToken += 1;
-                if ((*t)[*curToken].type != ARROW) syntax_error((*t)[*curToken], curToken, "an 'ARROW'");
-                *curToken += 1;
-                if ((*t)[*curToken].type != OPEN_PAREN) syntax_error((*t)[*curToken], curToken, "an 'OPEN_PAREN'");
+                if ((*t)[*curToken].type != OPEN_PAREN) syntax_error((*t)[*curToken], curToken, "an 'OPEN_PAREN' in function type declaration");
                 *curToken += 1;
 
 
                 Token returnToken = (*t)[*curToken];
                  *curToken += 1;
 
-                if ((*t)[*curToken].type != CLOSE_PAREN) syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
+                if ((*t)[*curToken].type != CLOSE_PAREN) syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN' in function type declaration");
                 *curToken += 1;
-
-                ASTNode* paramNode = new ASTNode;
-                paramNode->type = parameterToken.type;
-                paramNode->identifier = parameterToken.s;
               
                 ASTNode* returnNode = new ASTNode;
                 returnNode->type = returnToken.type;
                 returnNode->identifier = returnToken.s;
               
-                setThreeChildren(out, block(t, curToken), paramNode, returnNode);
+                setTwoChildren(out, block(t, curToken), returnNode);
+
+                for (size_t i = 0; i < list.size(); i++) {
+                    setChild(out, list[i]);
+                }
+
                 *curToken -= 1; // will consume a token later
                 break;
             } else {
+                syntax_error((*t)[*curToken], curToken, "a 'OPEN_PAREN'. Likely due to not specifying the type of the function");
+
                 setChild(out, block(t, curToken));
                 *curToken -= 1; // will consume a token later
                 break;
@@ -306,7 +319,7 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             out = expression(t, curToken);
 
             if ((*t)[*curToken].type != CLOSE_PAREN) {
-                syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
+                syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN`. No matching close paren for previous open paren at end of expression");
             }
             break;
         /* 
@@ -336,7 +349,7 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
             out->identifier = "print";
             break;
         default:
-            syntax_error((*t)[*curToken], curToken, "'fun', 'identifier', 'literal', or 'open_paren'");
+            syntax_error((*t)[*curToken], curToken, "'fun', 'identifier', 'literal', or 'open_paren' (one unit or one term)");
             // fail(curToken);
             break;
     }
@@ -365,14 +378,11 @@ ASTNode* e2(std::vector<Token>* t, uint64_t* curToken) {
                     do {
                         setChild(out, expression(t, curToken));
                         if ((*t)[*curToken].type != CLOSE_PAREN && (*t)[*curToken].type != COMMA) {
-                            syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN' or 'COMMA'");
+                            syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN' or 'COMMA' in function argument list");
                         }
                         *curToken += 1;
                     } while ((*t)[*curToken - 1].type == COMMA);
                 } else {
-                    if ((*t)[*curToken].type != CLOSE_PAREN) {
-                        syntax_error((*t)[*curToken], curToken, "a 'CLOSE_PAREN'");
-                    }
                     *curToken += 1;
                 }
                 

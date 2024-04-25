@@ -4,9 +4,9 @@ class Dog {
     a = 4
 }
 
-b = fun (Animal) -> (Dog) {
+b = fun () -> (int) {
     print 3
 }
 
 
-c = b(2)
+c = b()

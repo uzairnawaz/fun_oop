@@ -1,12 +1,12 @@
 
 class Apple {
-    init = fun {
+    init = fun () -> (int) {
         self.weight = 24
     }
     weight = 5
     color = 0
 }
-Apple a = new Apple(5)
+Apple a = new Apple()
 Apple b = a
 Apple c
 a.weight = 3
@@ -17,11 +17,11 @@ print a.color
 print b.weight
 print b.color
 
-b = new Apple(2)
+b = new Apple()
 print b.weight
 print b.color
 print a.weight
 print a.color
 
-b.init(10)
+b.init()
 print b.weight
