@@ -45,27 +45,42 @@ ClassNode::ClassNode(ASTNode* classASTNode) {
         */
         if (!containsMember(curStatement->children[0]->identifier)) {
             if (curStatement->type == DECLARATION) {
-                if (curStatement->children[0]->identifier == classASTNode->children[0]->identifier) {
-                    // if we have an instance variable of the same type of this class
-                    // ex: Node class contains a Node instance variable to store a ref to next node
-                    memberTypes.insert({curStatement->children[1]->identifier, this});
-                } else {
-                    memberTypes.insert({curStatement->children[1]->identifier, 
-                        classNames.at(curStatement->children[0]->identifier)});
+                if (curStatement->children.size() == 2) { //default/explicit public case
+                    if (curStatement->children[0]->identifier == classASTNode->children[0]->identifier) {
+                        // if we have an instance variable of the same type of this class
+                        // ex: Node class contains a Node instance variable to store a ref to next node
+                        memberTypes.insert({curStatement->children[1]->identifier, this});
+                    } else {
+                        memberTypes.insert({curStatement->children[1]->identifier, classNames.at(curStatement->children[0]->identifier)});
+                    }
+                    memberPos.insert({curStatement->children[1]->identifier, memPosition});
+                    memberIsPrivate.insert({curStatement->children[1]->identifier, false});
+                } else { // explicit private case
+                    if (curStatement->children[0]->identifier == classASTNode->children[0]->identifier) {
+                        // if we have an instance variable of the same type of this class
+                        // ex: Node class contains a Node instance variable to store a ref to next node
+                        memberTypes.insert({curStatement->children[2]->identifier, this});
+                    } else {
+                        memberTypes.insert({curStatement->children[2]->identifier, classNames.at(curStatement->children[0]->identifier)});
+                    }
+                    memberPos.insert({curStatement->children[2]->identifier, memPosition});
+                    memberIsPrivate.insert({curStatement->children[2]->identifier, true});
                 }
-            memberPos.insert({curStatement->children[1]->identifier, memPosition});
-                memberIsFunc.insert({curStatement->children[1]->identifier, false});
             } else if (curStatement->type == ASSIGN) { 
                 if (curStatement->children[0]->type == DECLARATION) {
-                    memberTypes.insert({curStatement->children[0]->children[1]->identifier,
-                        classNames.at(curStatement->children[0]->children[0]->identifier)});
-                    memberPos.insert({curStatement->children[0]->children[1]->identifier, memPosition});
-                    memberIsFunc.insert({curStatement->children[0]->children[1]->identifier, false});
+                    if (curStatement->children[0]->children.size() == 2) { //default/explicit public
+                        memberTypes.insert({curStatement->children[0]->children[1]->identifier, classNames.at(curStatement->children[0]->children[0]->identifier)});
+                        memberPos.insert({curStatement->children[0]->children[1]->identifier, memPosition});
+                        memberIsPrivate.insert({curStatement->children[0]->children[1]->identifier, false});
+                    } else { //explicity private
+                        memberTypes.insert({curStatement->children[0]->children[2]->identifier, classNames.at(curStatement->children[0]->children[0]->identifier)});
+                        memberPos.insert({curStatement->children[0]->children[2]->identifier, memPosition});
+                        memberIsPrivate.insert({curStatement->children[0]->children[2]->identifier, true});
+                    }
                 } else {
-                    memberIsFunc.insert({curStatement->children[0]->identifier, curStatement->children[1]->type == FUN});
-                    memberTypes.insert({curStatement->children[0]->identifier, 
-                        classNames.at("int")});
+                    memberTypes.insert({curStatement->children[0]->identifier, classNames.at("int")});
                     memberPos.insert({curStatement->children[0]->identifier, memPosition});
+                    memberIsPrivate.insert({curStatement->children[0]->identifier, false});
                 }
             }
             memPosition += 8;
@@ -112,6 +127,13 @@ uint64_t ClassNode::getMemberPos(std::string member) {
 
 
     return memberPos.at(member);
+}
+
+int ClassNode::getMemberAccess(std::string member) {
+    if (memberIsPrivate.find(member) == memberIsPrivate.end()) { 
+        return parent->getMemberAccess(member) ? 2 : 0;
+    }
+    return memberIsPrivate.at(member) ? 1 : 0;
 }
 
 std::string& SSS (const char* s)

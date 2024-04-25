@@ -1,4 +1,3 @@
-
 class Abc {
     idk = 2
     idk2 = 4

@@ -1,7 +1,6 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include <stdlib.h>
 #include <unordered_map>
 #include <string>
@@ -44,6 +43,8 @@ typedef enum {
     COMMA,
     ACCESS,
     NEW,
+    PUBLIC,
+    PRIVATE,
     IDENTIFIER,
     LITERAL,
     ARRAY_ACCESS,
@@ -66,8 +67,6 @@ typedef struct Tokens {
 typedef struct ASTNode {
     ASTType type;
     std::vector<ASTNode*> children;
-    //struct ASTNode** children;
-    //int numChildren;
     uint64_t literal;
     std::string identifier;
 } ASTNode;
