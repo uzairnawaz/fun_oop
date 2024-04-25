@@ -86,8 +86,8 @@ bool match(const char* current, std::string token) {
 */
 
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 37;
-    static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "[", "]", "class", "extends", "fun", "while", "if", "else", "print",
+    static const int NUM_TOKEN_TYPES = 38;
+    static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "[", "]", "class", "extends", "fun", "while", "if", "else", "print", "printc",
         "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
         "&", "||", ",", ".", "new", "public", "private"};
     
@@ -207,6 +207,7 @@ std::vector<Token>* tokenize(const char* program) {
 ASTNode* ast_create(const char* program) {
     classNames.insert({"Object", nullptr});
     classNames.insert({"int", nullptr});
+    classNames.insert({"char", nullptr});
 
 
     std::vector<Token>* t = tokenize(program);
@@ -300,7 +301,7 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
                 *curToken -= 1; // will consume a token later
                 break;
             } else {
-                syntax_error((*t)[*curToken], curToken, "a 'OPEN_PAREN'. Likely due to not specifying the type of the function");
+                syntax_error((*t)[*curToken], curToken, "a 'OPEN_PAREN' . Likely due to not specifying the type of the function");
 
                 setChild(out, block(t, curToken));
                 *curToken -= 1; // will consume a token later
@@ -348,6 +349,10 @@ ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
         case PRINT:
             out->type = IDENTIFIER;
             out->identifier = "print";
+            break;
+        case PRINTC:
+            out->type = IDENTIFIER;
+            out->identifier = "printc";
             break;
         default:
             syntax_error((*t)[*curToken], curToken, "'fun', 'identifier', 'literal', or 'open_paren' (one unit or one term)");
@@ -614,6 +619,7 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* out = new ASTNode;
     switch ((*t)[*curToken].type) {
         case PRINT:
+        case PRINTC:
         case RETURN:
             out->type = (*t)[*curToken].type;
             *curToken += 1;
@@ -755,6 +761,10 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             ASTNode* name = new ASTNode;
             name->type = IDENTIFIER;
             name->identifier = (*t)[*curToken + 1].s;
+            if (classNames.find(name->identifier) != classNames.end()) {
+                printf("CLASS ALREADY DEFINED: %s", name->identifier.c_str());
+                exit(1);
+            }
             ASTNode* parent = new ASTNode;
             parent->type = IDENTIFIER;
             if ((*t)[*curToken + 2].type == EXTENDS) {
@@ -773,9 +783,7 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
         }
         default:
             delete out;
-            syntax_error((*t)[*curToken], curToken, "a statement: 'PRINT', 'RETURN', 'IF', 'WHILE', 'IDENTIFIER', 'FUN', or 'CLASS'");
-            // printf("!!! %d\n", (*t)[*curToken].type);
-            // fail(curToken);
+            syntax_error((*t)[*curToken], curToken, "a statement: 'PRINT', 'PRINTC', 'RETURN', 'IF', 'WHILE', 'IDENTIFIER', 'FUN', or 'CLASS'");
             return NULL;
     }
     return out;
@@ -882,7 +890,7 @@ void ast_fold(ASTNode* ast) {
 }
 
 
-const char* tokenNames[41] = {
+const char* tokenNames[44] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
@@ -896,6 +904,7 @@ const char* tokenNames[41] = {
     "IF",
     "ELSE",
     "PRINT",
+    "PRINTC",
     "RETURN",
     "ARROW",
     "PLUS",
@@ -918,6 +927,8 @@ const char* tokenNames[41] = {
     "COMMA",
     "ACCESS",
     "NEW",
+    "PUBLIC",
+    "PRIVATE",
     "IDENTIFIER",
     "LITERAL",
     "ARRAY_ACCESS",

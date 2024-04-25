@@ -1,11 +1,11 @@
 class Building {
     private height = 4
     capacity = 10
-    private x1 = fun {
+    private x1 = fun () -> (int) {
         return self.height
     }
-    x2 = fun {
-        return self.x1(0)
+    x2 = fun () -> (int) {
+        return self.x1()
     }
 }
 
@@ -15,7 +15,7 @@ class ConcertHall extends Building {
 
 }
 
-Building x = new Building(0)
-print x.x2(0)
+Building x = new Building()
+print x.x2()
 
 
