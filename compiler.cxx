@@ -1,11 +1,16 @@
 
 #include "compiler.h"
 
+std::string output = "";
+void print(std::string str) {
+    output += str;
+}
 
 /*
  Compiles the given fun program
  Compiled code is printed to stdout
 */
+
 void FunCompiler::compile(const char* program) {
     astRoot = ast_create(program);
     // ast_display(astRoot, 0);
@@ -18,14 +23,16 @@ void FunCompiler::compile(const char* program) {
 
     preprocess();    
 
-    printf("main:\n");
-    printf("    stp x29, x30, [SP, #-16]!\n");
-    printf("    ldr x1, =v_argc\n");
-    printf("    str x0, [x1]\n");
+    print("main:\n");
+    print("    stp x29, x30, [SP, #-16]!\n");
+    print("    ldr x1, =v_argc\n");
+    print("    str x0, [x1]\n");
     compile_ast(astRoot);    
-    printf("    mov x0, #0\n");
-    printf("    ldp x29, x30, [SP], #16\n");
-    printf("    ret\n");
+    print("    mov x0, #0\n");
+    print("    ldp x29, x30, [SP], #16\n");
+    print("    ret\n");
+
+    printf("%s", output.c_str());
 
     ast_free(astRoot);
 }
@@ -34,17 +41,17 @@ void FunCompiler::compile(const char* program) {
  Generate the data section of the program
 */
 void FunCompiler::preprocess() {
-    printf("    .data\n");
-    printf("    .extern printf\n");
-    printf("fmt:\n");
-    printf("    .string \"%%ld\\n\"\n");
-    printf("    .align 7\n");
-    printf("v_argc:\n");
-    printf("    .quad -1\n");
+    print("    .data\n");
+    print("    .extern printf\n");
+    print("fmt:\n");
+    print("    .string \"%ld\\n\"\n");
+    print("    .align 7\n");
+    print("v_argc:\n");
+    print("    .quad -1\n");
 
     for (int i = 0; i < 8; i++) {
-        printf("v_it%d:\n", i);
-        printf("    .quad 0\n");
+        print("v_it" + std::to_string(i) + ":\n");
+        print("    .quad 0\n");
     }
 
     std::unordered_set<std::string> varNames;
@@ -60,8 +67,8 @@ void FunCompiler::preprocess() {
     
     preprocessVars(astRoot, &varNames);
 
-    printf("    .text\n");
-    printf("    .global main\n");
+    print("    .text\n");
+    print("    .global main\n");
 }
 
 /*
@@ -73,10 +80,8 @@ void FunCompiler::preprocessVars(ASTNode* ast,
         std::string varName = ast->identifier;
         if (varNames->count(varName) == 0) {
             varNames->insert(varName);
-            printf("v_");
-            printf("%s", ast->identifier.c_str());
-            printf(":\n");
-            printf("    .quad 0\n");
+            print("v_" + ast->identifier + ":\n");
+            print("    .quad 0\n");
         }
     } else {
         for (uint64_t i = 0; i < ast->children.size(); i++) {
@@ -90,10 +95,10 @@ void FunCompiler::preprocessVars(ASTNode* ast,
 */
 void FunCompiler::loadBinaryChildrenReg(ASTNode* ast) {
     compile_ast(ast->children[0]);
-    printf("    str x0, [SP, #-16]!\n");
+    print("    str x0, [SP, #-16]!\n");
     compile_ast(ast->children[1]);
-    printf("    mov x1, x0\n");
-    printf("    ldr x0, [SP], #16\n");
+    print("    mov x1, x0\n");
+    print("    ldr x0, [SP], #16\n");
 }
 
 
@@ -130,32 +135,32 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             // ClassNode* type = determineType(ast->children[0]);
             // uint64_t size = type == 0 ? 8 : type->getSize();
             loadBinaryChildrenReg(ast);
-            printf("    ldr x2, =8\n");//%ld\n", size);
-            printf("    mul x1, x1, x2\n");
-            printf("    add x0, x0, x1\n");
-            printf("    ldr x0, [x0]\n");
+            print("    ldr x2, =8\n");//%ld\n", size);
+            print("    mul x1, x1, x2\n");
+            print("    add x0, x0, x1\n");
+            print("    ldr x0, [x0]\n");
             break;
         }
         case CLASS: {
             int labelNum = labelCounter++;
             selfType = classNames.at(ast->children[0]->identifier);
             inClassDefinition = true;
-            printf("    b class%d_end\n", labelNum);
-            printf("class%d:\n", labelNum);
-            printf("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
+            print("    b class" + std::to_string(labelNum) + "_end\n");
+            print("class" + std::to_string(labelNum) + ":\n");
+            print("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
             if (selfType->getParent() != 0) {
                 // branch to parent
-                printf("    ldr x0, =v_%s\n", ast->children[1]->identifier.c_str());
-                printf("    ldr x0, [x0]\n");
-                printf("    blr x0\n");
+                print("    ldr x0, =v_" + ast->children[1]->identifier + "\n");
+                print("    ldr x0, [x0]\n");
+                print("    blr x0\n");
             }
             compile_ast(ast->children[2]);
-            printf("    ldp x29, x30, [SP], #16\n"); 
-            printf("    ret\n");
-            printf("class%d_end:\n", labelNum);
-            printf("    ldr x0, =class%d\n", labelNum);
-            printf("    ldr x1, =v_%s\n", ast->children[0]->identifier.c_str());
-            printf("    str x0, [x1]\n");
+            print("    ldp x29, x30, [SP], #16\n"); 
+            print("    ret\n");
+            print("class" + std::to_string(labelNum) + "_end:\n");
+            print("    ldr x0, =class" + std::to_string(labelNum) + "\n");
+            print("    ldr x1, =v_" + ast->children[0]->identifier + "\n");
+            print("    str x0, [x1]\n");
             inClassDefinition = false;
             break;
         }
@@ -163,54 +168,54 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             std::string type = ast->children[0]->children[0]->identifier;
             ClassNode* classNode = classNames.at(type); 
             if (ast->children[0]->type == FUNC_CALL) { // instantiating a new object
-                printf("    ldr x0, =%ld\n", classNode->getSize());
-                printf("    bl fun_malloc\n");
-                printf("    str x0, [SP, #-16]!\n");
-                printf("    ldr x1, =v_%s\n", ast->children[0]->children[0]->identifier.c_str());
-                printf("    ldr x1, [x1]\n");
-                printf("    str x10, [SP, #-16]!\n");
-                printf("    mov x10, x0\n");
-                printf("    blr x1\n");
-                printf("    ldr x10, [SP], #16\n");
-                printf("    ldr x0, [SP], #16\n");
+                print("    ldr x0, =" + std::to_string(classNode->getSize()) + "\n");
+                print("    bl fun_malloc\n");
+                print("    str x0, [SP, #-16]!\n");
+                print("    ldr x1, =v_" + ast->children[0]->children[0]->identifier + "\n");
+                print("    ldr x1, [x1]\n");
+                print("    str x10, [SP, #-16]!\n");
+                print("    mov x10, x0\n");
+                print("    blr x1\n");
+                print("    ldr x10, [SP], #16\n");
+                print("    ldr x0, [SP], #16\n");
                 break;
             } else { //instantiating an array
                 compile_ast(ast->children[0]->children[1]);
                 if (classNode == 0) { // if this is an int array
-                    printf("    ldr x1, =8\n");
-                    printf("    mul x0, x0, x1\n");
-                    printf("    bl fun_malloc\n");
+                    print("    ldr x1, =8\n");
+                    print("    mul x0, x0, x1\n");
+                    print("    bl fun_malloc\n");
                 } else {
-                    printf("    str x0, [SP, #-16]!\n");
-                    printf("    ldr x1, =8\n");//%ld\n", classNode->getSize());
-                    printf("    mul x0, x0, x1\n");
-                    printf("    bl fun_malloc\n");
-                    printf("    ldr x2, [SP], #16\n"); // loading from stack the length of array
-                    printf("    str x10, [SP, #-16]!\n"); // store old "self" on the stack
-                    printf("    str x0, [SP, #-16]!\n"); // storing pointer to first array element
-                    printf("    mov x3, x0\n");
+                    print("    str x0, [SP, #-16]!\n");
+                    print("    ldr x1, =8\n");//%ld\n", classNode->getSize());
+                    print("    mul x0, x0, x1\n");
+                    print("    bl fun_malloc\n");
+                    print("    ldr x2, [SP], #16\n"); // loading from stack the length of array
+                    print("    str x10, [SP, #-16]!\n"); // store old "self" on the stack
+                    print("    str x0, [SP, #-16]!\n"); // storing pointer to first array element
+                    print("    mov x3, x0\n");
                     
                     int labelNum = labelCounter++;
                     
-                    printf("instantiate_array_%d:\n", labelNum);
-                    printf("    str x2, [SP, #-16]!\n"); // x2 = loop control var (starts at arr length and goes to 0)
-                    printf("    str x3, [SP, #-16]!\n"); // x3 = mem address of cur element in arr
-                    printf("    ldr x0, =%ld\n", classNode->getSize());
-                    printf("    bl fun_malloc\n");
-                    printf("    ldr x3, [SP]\n");
-                    printf("    str x0, [x3]\n");
-                    printf("    mov x10, x0\n"); // update "self"
-                    printf("    ldr x1, =v_%s\n", ast->children[0]->children[0]->identifier.c_str());
-                    printf("    ldr x1, [x1]\n"); //load pointer to class definition
-                    printf("    blr x1\n"); // instantiate object
-                    printf("    ldr x3, [SP], #16\n");
-                    printf("    ldr x2, [SP], #16\n");
-                    printf("    add x3, x3, #8\n");
-                    printf("    sub x2, x2, #1\n");
-                    printf("    cbnz x2, instantiate_array_%d\n", labelNum);
+                    print("instantiate_array_" + std::to_string(labelNum) + ":\n");
+                    print("    str x2, [SP, #-16]!\n"); // x2 = loop control var (starts at arr length and goes to 0)
+                    print("    str x3, [SP, #-16]!\n"); // x3 = mem address of cur element in arr
+                    print("    ldr x0, =" + std::to_string(classNode->getSize()) + "\n");
+                    print("    bl fun_malloc\n");
+                    print("    ldr x3, [SP]\n");
+                    print("    str x0, [x3]\n");
+                    print("    mov x10, x0\n"); // update "self"
+                    print("    ldr x1, =v_" + ast->children[0]->children[0]->identifier + "\n");
+                    print("    ldr x1, [x1]\n"); //load pointer to class definition
+                    print("    blr x1\n"); // instantiate object
+                    print("    ldr x3, [SP], #16\n");
+                    print("    ldr x2, [SP], #16\n");
+                    print("    add x3, x3, #8\n");
+                    print("    sub x2, x2, #1\n");
+                    print("    cbnz x2, instantiate_array_" + std::to_string(labelNum) + "\n");
                     
-                    printf("    ldr x0, [SP], #16\n"); // load back pointer to start of array
-                    printf("    ldr x10, [SP], #16\n"); // load back old "self"
+                    print("    ldr x0, [SP], #16\n"); // load back pointer to start of array
+                    print("    ldr x10, [SP], #16\n"); // load back old "self"
                 }
                 break;
            }
@@ -220,196 +225,196 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             uint64_t idx = type->getMemberPos(ast->children[1]->identifier);
 
             compile_ast(ast->children[0]);
-            printf("    ldr x0, [x0, #%ld]\n", idx);
+            print("    ldr x0, [x0, #" + std::to_string(idx) + "]\n");
             break;
         }
         case FUN: {
             int labelNum = labelCounter++; 
-            printf("    b func%d_end\n", labelNum);
-            printf("func%d:\n", labelNum);
-            printf("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
+            print("    b func" + std::to_string(labelNum) + "_end\n");
+            print("func" + std::to_string(labelNum) + ":\n");
+            print("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
 
             for (int i = 0; i < 8; i++) {
-                printf("    ldr x9, =v_it%d\n", i);
-                printf("    ldr x8, [x9]\n");
-                printf("    str x8, [SP, #-16]!\n"); // store the old "it" value on the stack
-                printf("    str x%d, [x9]\n", i); // update the value of "it" with x0 (function input)
+                print("    ldr x9, =v_it" + std::to_string(i) + " \n");
+                print("    ldr x8, [x9]\n");
+                print("    str x8, [SP, #-16]!\n"); // store the old "it" value on the stack
+                print("    str x" + std::to_string(i) + ", [x9]\n"); // update the value of "it" with x0 (function input)
             }
 
             compile_ast(ast->children[0]);  
 
             // default return  
             for (int i = 7; i >= 0; i--) {
-                printf("    ldr x1, [SP], #16\n");
-                printf("    ldr x2, =v_it%d\n", i);
-                printf("    str x1, [x2]\n");
+                print("    ldr x1, [SP], #16\n");
+                print("    ldr x2, =v_it" + std::to_string(i) + "\n");
+                print("    str x1, [x2]\n");
             }
 
-            printf("    ldp x29, x30, [SP], #16\n");
-            printf("    mov x0, #0\n");
-            printf("    ret\n");
+            print("    ldp x29, x30, [SP], #16\n");
+            print("    mov x0, #0\n");
+            print("    ret\n");
 
-            printf("func%d_end:\n", labelNum);
-            printf("    ldr x0, =func%d\n", labelNum);
+            print("func" + std::to_string(labelNum) + "_end:\n");
+            print("    ldr x0, =func" + std::to_string(labelNum) + "\n");
             return;
         }
         case WHILE: { 
             compile_ast(ast->children[0]); // evaluate condition 
             int labelNum = labelCounter++;    
-            printf("    cbz x0, loop_end%d\n", labelNum); // skip if condition == 0
-            printf("loop%d:\n", labelNum);
+            print("    cbz x0, loop_end" + std::to_string(labelNum) + "\n"); // skip if condition == 0
+            print("loop" + std::to_string(labelNum) + ":\n");
             compile_ast(ast->children[1]);
             compile_ast(ast->children[0]); // reevaluate condition 
-            printf("    cbnz x0, loop%d\n", labelNum); // jump to start of loop if condition true
-            printf("loop_end%d:\n", labelNum);
+            print("    cbnz x0, loop" + std::to_string(labelNum) + "\n"); // jump to start of loop if condition true
+            print("loop_end" + std::to_string(labelNum) + ":\n");
             return;
         }
         case IF: {    
             compile_ast(ast->children[0]); // evaluate condition
             int labelNum = labelCounter++;    
-            printf("    cbz x0, else%d\n", labelNum); // jump to else if condition failed
-            printf("if%d:\n", labelNum);
+            print("    cbz x0, else" + std::to_string(labelNum) + "\n"); // jump to else if condition failed
+            print("if" + std::to_string(labelNum) + ":\n");
             compile_ast(ast->children[1]);
-            printf("    b if_end%d\n", labelNum); 
-            printf("else%d:\n", labelNum);
+            print("    b if_end" + std::to_string(labelNum) + "\n"); 
+            print("else" + std::to_string(labelNum) + ":\n");
             if (ast->children.size() == 3) { // if this "if" statement had an "else" clause
                 compile_ast(ast->children[2]); // compile the else clause 
             }
-            printf("if_end%d:\n", labelNum);
+            print("if_end" + std::to_string(labelNum) + ":\n");
             return;
         }
         case PRINT: 
-            printf("// print\n");
+            print("// print\n");
             compile_ast(ast->children[0]);
-            printf("    mov x1, x0\n"); // integer to print goes in x1
-            printf("    ldr x0, =fmt\n"); 
-            printf("    bl printf\n");
+            print("    mov x1, x0\n"); // integer to print goes in x1
+            print("    ldr x0, =fmt\n"); 
+            print("    bl printf\n");
             return;
         case RETURN:
             if (ast->children[0]->type == FUNC_CALL) { // tail call optimization
                 compile_ast(ast->children[0]->children[0]); // function address stored in x0
-                printf("    str x0, [SP, #-16]!\n");
+                print("    str x0, [SP, #-16]!\n");
                 compile_ast(ast->children[0]->children[1]); // function input stored in x0
-                printf("    ldr x1, [SP], #16\n");
+                print("    ldr x1, [SP], #16\n");
 
                 for (int i = 7; i >= 0; i--) {
-                    printf("    ldr x2, [SP], #16\n");
-                    printf("    ldr x3, =v_it%d\n", i);
-                    printf("    str x2, [x3]\n");
+                    print("    ldr x2, [SP], #16\n");
+                    print("    ldr x3, =v_it" + std::to_string(i) + "\n");
+                    print("    str x2, [x3]\n");
                 }
 
-                printf("    ldp x29, x30, [SP], #16\n");
+                print("    ldp x29, x30, [SP], #16\n");
 
-                printf("    br x1\n"); // call function, WITHOUT linking
+                print("    br x1\n"); // call function, WITHOUT linking
             } else {
                 compile_ast(ast->children[0]);
 
                 for (int i = 7; i >= 0; i--) {
-                    printf("    ldr x1, [SP], #16\n");
-                    printf("    ldr x2, =v_it%d\n", i);
-                    printf("    str x1, [x2]\n");
+                    print("    ldr x1, [SP], #16\n");
+                    print("    ldr x2, =v_it" + std::to_string(i) + "\n");
+                    print("    str x1, [x2]\n");
                 }
                 
-                printf("    ldp x29, x30, [SP], #16\n");
-                printf("    ret\n");
+                print("    ldp x29, x30, [SP], #16\n");
+                print("    ret\n");
             }
             return;
         case PLUS:  
             loadBinaryChildrenReg(ast);
-            printf("    add x0, x0, x1\n");
+            print("    add x0, x0, x1\n");
             return;
         case MINUS: 
             loadBinaryChildrenReg(ast);
-            printf("    sub x0, x0, x1\n");
+            print("    sub x0, x0, x1\n");
             return;
         case MULT:   
             loadBinaryChildrenReg(ast);
-            printf("    mul x0, x0, x1\n");
+            print("    mul x0, x0, x1\n");
             return;
         case DIV:
             loadBinaryChildrenReg(ast);
-            printf("    udiv x0, x0, x1\n");
+            print("    udiv x0, x0, x1\n");
             return;
         case MOD: 
             // a % b = a - b * (a / b)
             loadBinaryChildrenReg(ast);
-            printf("    udiv x2, x0, x1\n");
-            printf("    msub x3, x2, x1, x0\n");
+            print("    udiv x2, x0, x1\n");
+            print("    msub x3, x2, x1, x0\n");
             
             // if b is 0, a % b = 0
-            printf("    udiv x4, x1, x1\n");
-            printf("    mul x0, x3, x4\n");
+            print("    udiv x4, x1, x1\n");
+            print("    mul x0, x3, x4\n");
             return;
         case LESS_EQUAL: { 
             loadBinaryChildrenReg(ast);
             int labelNum = labelCounter++;
-            printf("    cmp x0, x1\n");
-            printf("    bls condition%d\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b condition%d_end\n", labelNum);
-            printf("condition%d:\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("condition%d_end:\n", labelNum);
+            print("    cmp x0, x1\n");
+            print("    bls condition" + std::to_string(labelNum) + "\n");
+            print("    mov x0, #0\n");
+            print("    b condition" + std::to_string(labelNum) + "_end\n");
+            print("condition" + std::to_string(labelNum) + ":\n");
+            print("    mov x0, #1\n");
+            print("condition" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case GREATER_EQUAL: {  
             loadBinaryChildrenReg(ast);
             int labelNum = labelCounter++;
-            printf("    cmp x0, x1\n");
-            printf("    bhs condition%d\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b condition%d_end\n", labelNum);
-            printf("condition%d:\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("condition%d_end:\n", labelNum);
+            print("    cmp x0, x1\n");
+            print("    bhs condition" + std::to_string(labelNum) + "\n");
+            print("    mov x0, #0\n");
+            print("    b condition" + std::to_string(labelNum) + "_end\n");
+            print("condition" + std::to_string(labelNum) + ":\n");
+            print("    mov x0, #1\n");
+            print("condition" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case LESS: { 
             loadBinaryChildrenReg(ast);
             int labelNum = labelCounter++;
-            printf("    cmp x0, x1\n");
-            printf("    blo condition%d\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b condition%d_end\n", labelNum);
-            printf("condition%d:\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("condition%d_end:\n", labelNum);
+            print("    cmp x0, x1\n");
+            print("    blo condition" + std::to_string(labelNum) + "\n");
+            print("    mov x0, #0\n");
+            print("    b condition" + std::to_string(labelNum) + "_end\n");
+            print("condition" + std::to_string(labelNum) + ":\n");
+            print("    mov x0, #1\n");
+            print("condition" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case GREATER: { 
             loadBinaryChildrenReg(ast);
             int labelNum = labelCounter++;
-            printf("    cmp x0, x1\n");
-            printf("    bhi condition%d\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b condition%d_end\n", labelNum);
-            printf("condition%d:\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("condition%d_end:\n", labelNum);
+            print("    cmp x0, x1\n");
+            print("    bhi condition" + std::to_string(labelNum) + "\n");
+            print("    mov x0, #0\n");
+            print("    b condition" + std::to_string(labelNum) + "_end\n");
+            print("condition" + std::to_string(labelNum) + ":\n");
+            print("    mov x0, #1\n");
+            print("condition" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case EQUAL: { 
             loadBinaryChildrenReg(ast);
             int labelNum = labelCounter++;
-            printf("    cmp x0, x1\n");
-            printf("    beq condition%d\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b condition%d_end\n", labelNum);
-            printf("condition%d:\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("condition%d_end:\n", labelNum);
+            print("    cmp x0, x1\n");
+            print("    beq condition" + std::to_string(labelNum) + "\n");
+            print("    mov x0, #0\n");
+            print("    b condition" + std::to_string(labelNum) + "_end\n");
+            print("condition" + std::to_string(labelNum) + ":\n");
+            print("    mov x0, #1\n");
+            print("condition" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case NOT_EQUAL: {
             loadBinaryChildrenReg(ast);
             int labelNum = labelCounter++;
-            printf("    cmp x0, x1\n");
-            printf("    bne condition%d\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b condition%d_end\n", labelNum);
-            printf("condition%d:\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("condition%d_end:\n", labelNum);
+            print("    cmp x0, x1\n");
+            print("    bne condition" + std::to_string(labelNum) + "\n");
+            print("    mov x0, #0\n");
+            print("    b condition" + std::to_string(labelNum) + "_end\n");
+            print("condition" + std::to_string(labelNum) + ":\n");
+            print("    mov x0, #1\n");
+            print("condition" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case ASSIGN: { 
@@ -426,18 +431,18 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 /     \
             type     var_name
             */
-            printf("// ASSIGN\n"); 
+            print("// ASSIGN\n"); 
             if (ast->children[0]->type == DECLARATION || ast->children[0]->type == IDENTIFIER) {
                 if (!inClassDefinition) {
                     compile_ast(ast->children[1]);
-                    printf("    ldr x1, =v_");
+                    print("    ldr x1, =v_");
                     if (ast->children[0]->type == DECLARATION) {
-                        printf("%s", ast->children[0]->children[1]->identifier.c_str());
+                        print(ast->children[0]->children[1]->identifier);
                     } else {
-                        printf("%s", ast->children[0]->identifier.c_str());
+                        print(ast->children[0]->identifier);
                     }
-                    printf("\n");
-                    printf("    str x0, [x1]\n");
+                    print("\n");
+                    print("    str x0, [x1]\n");
                 } else { // implicitly accessing self 
                     compile_ast(ast->children[1]);
                     uint64_t idx;
@@ -446,33 +451,33 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                     } else {
                         idx = selfType->getMemberPos(ast->children[0]->identifier);
                     }
-                    printf("    str x0, [x10, #%ld]\n", idx);
+                    print("    str x0, [x10, #" + std::to_string(idx) + "]\n");
                 }
             } else if (ast->children[0]->type == ACCESS) {
                 ClassNode* type = determineType(ast->children[0]->children[0]);
                 uint64_t idx = type->getMemberPos(ast->children[0]->children[1]->identifier);
 
                 compile_ast(ast->children[0]->children[0]);
-                printf("    str x0, [SP, #-16]!\n");
+                print("    str x0, [SP, #-16]!\n");
                 compile_ast(ast->children[1]);
-                printf("    mov x1, x0\n");
-                printf("    ldr x0, [SP], #16\n");
-                printf("    str x1, [x0, #%ld]\n", idx); 
+                print("    mov x1, x0\n");
+                print("    ldr x0, [SP], #16\n");
+                print("    str x1, [x0, #" + std::to_string(idx) + "]\n"); 
             } else if (ast->children[0]->type == ARRAY_ACCESS) {
                 compile_ast(ast->children[0]->children[0]);
-                printf("    str x0, [SP, #-16]!\n");
+                print("    str x0, [SP, #-16]!\n");
                 compile_ast(ast->children[0]->children[1]);
-                printf("    str x0, [SP, #-16]!\n");
+                print("    str x0, [SP, #-16]!\n");
                 compile_ast(ast->children[1]);
-                printf("    mov x2, x0\n");
-                printf("    ldr x1, [SP], #16\n");
-                printf("    ldr x0, [SP], #16\n");
+                print("    mov x2, x0\n");
+                print("    ldr x1, [SP], #16\n");
+                print("    ldr x0, [SP], #16\n");
                 // arr[idx] = val
                 // x0 = arr, x1 = idx, x2 = val
-                printf("    ldr x4, =8\n");
-                printf("    mul x1, x1, x4\n");
-                printf("    add x0, x0, x1\n");
-                printf("    str x2, [x0]\n");
+                print("    ldr x4, =8\n");
+                print("    mul x1, x1, x4\n");
+                print("    add x0, x0, x1\n");
+                print("    str x2, [x0]\n");
             } else {
                 // BAD! ERROR!!
             }
@@ -481,31 +486,31 @@ void FunCompiler::compile_ast(ASTNode* ast) {
         case LOG_AND: { 
             compile_ast(ast->children[0]);
             int labelNum = labelCounter++;
-            printf("    cbz x0, and%d_0\n", labelNum);
+            print("    cbz x0, and" + std::to_string(labelNum) + "_0\n");
             compile_ast(ast->children[1]);
-            printf("    cbz x0, and%d_0\n", labelNum);
-            printf("    mov x0, #1\n");
-            printf("    b and%d_end\n", labelNum);
-            printf("and%d_0:\n", labelNum); 
-            printf("    mov x0, #0\n");
-            printf("and%d_end:\n", labelNum);
+            print("    cbz x0, and" + std::to_string(labelNum) + "_0\n");
+            print("    mov x0, #1\n");
+            print("    b and" + std::to_string(labelNum) + "_end\n");
+            print("and" + std::to_string(labelNum) + "_0:\n"); 
+            print("    mov x0, #0\n");
+            print("and" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case BIT_AND:
             loadBinaryChildrenReg(ast);
-            printf("    and x0, x0, x1\n");
+            print("    and x0, x0, x1\n");
             return;
         case LOG_OR: { 
             compile_ast(ast->children[0]);
             int labelNum = labelCounter++;
-            printf("    cbnz x0, or%d_1\n", labelNum);
+            print("    cbnz x0, or" + std::to_string(labelNum) + "_1\n");
             compile_ast(ast->children[1]);
-            printf("    cbnz x0, or%d_1\n", labelNum);
-            printf("    mov x0, #0\n");
-            printf("    b or%d_end\n", labelNum);
-            printf("or%d_1:\n", labelNum); 
-            printf("    mov x0, #1\n");
-            printf("or%d_end:\n", labelNum);
+            print("    cbnz x0, or" + std::to_string(labelNum) + "_1\n");
+            print("    mov x0, #0\n");
+            print("    b or" + std::to_string(labelNum) + "_end\n");
+            print("or" + std::to_string(labelNum) + "_1:\n"); 
+            print("    mov x0, #1\n");
+            print("or" + std::to_string(labelNum) + "_end:\n");
             return;
         }
         case COMMA: 
@@ -514,22 +519,22 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             return;
         case SHIFT_LEFT: 
             loadBinaryChildrenReg(ast);
-            printf("    lslv x0, x0, x1");
+            print("    lslv x0, x0, x1");
             return;
         case SHIFT_RIGHT:
             loadBinaryChildrenReg(ast);
-            printf("    lsrv x0, x0, x1");
+            print("    lsrv x0, x0, x1");
             return;
         case IDENTIFIER:
             if (ast->identifier == "self") {
-                printf("    mov x0, x10\n");
+                print("    mov x0, x10\n");
             } else {
-                printf("    ldr x0, =v_%s\n", ast->identifier.c_str());
-                printf("    ldr x0, [x0]\n");
+                print("    ldr x0, =v_" + ast->identifier + "\n");
+                print("    ldr x0, [x0]\n");
             }
            return;
         case LITERAL:  
-            printf("    ldr x0, =%ld\n", ast->literal);
+            print("    ldr x0, =" + std::to_string(ast->literal) + "\n");
             return;
         case FUNC_CALL:  
             if (ast->children[0]->type == ACCESS) {
@@ -537,18 +542,18 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 uint64_t idx = type->getMemberPos(ast->children[0]->children[1]->identifier);
 
                 compile_ast(ast->children[0]->children[0]);
-                printf("    str x10, [SP, #-16]!\n");
-                printf("    mov x10, x0\n");
-                printf("    ldr x0, [x0, #%ld]\n", idx);
+                print("    str x10, [SP, #-16]!\n");
+                print("    mov x10, x0\n");
+                print("    ldr x0, [x0, #" + std::to_string(idx) +"]\n");
             } else {
                 compile_ast(ast->children[0]); // function address in x0
             }
-            printf("    str x0, [SP, #-16]!\n");
+            print("    str x0, [SP, #-16]!\n");
 
             for (uint64_t i = 0; i < 8; i++) {
                 if (ast->children.size() >= (i + 2)) { // i + 1
                     compile_ast(ast->children[i + 1]);
-                    printf("    str x0, [SP, #-16]!\n");
+                    print("    str x0, [SP, #-16]!\n");
                 } else {
                     break;
                 }
@@ -556,15 +561,15 @@ void FunCompiler::compile_ast(ASTNode* ast) {
 
             for (int i = 7; i >= 0; i--) {
                 if (((int) ast->children.size()) >= (i + 2)) { // i + 1
-                    printf("    ldr x%d, [SP], #16\n", i);
+                    print("    ldr x" + std::to_string(i) + ", [SP], #16\n");
                 }
             }
         
-            printf("    ldr x8, [SP], #16\n");
-            printf("    blr x8\n"); // call function (input remains in x0)
+            print("    ldr x8, [SP], #16\n");
+            print("    blr x8\n"); // call function (input remains in x0)
             
             if (ast->children[0]->type == ACCESS) {
-                printf("    ldr x10, [SP], #16\n");
+                print("    ldr x10, [SP], #16\n");
             }
             return;
         case BLOCK:

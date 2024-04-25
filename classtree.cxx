@@ -2,6 +2,14 @@
 #include "classtree.h"
 #include "ast.h"
 
+void undefined_member_error(std::string str) {
+    printf("UNDEFINED MEMBER ERROR\n");
+    printf("----------------------\n");
+    printf("an object had an undefined member trying to be accessed: ");
+    printf("%s", str.c_str());
+    exit(1);
+}
+
 ClassNode::ClassNode(ASTNode* classASTNode) {
     astNode = classASTNode;
     if (classASTNode == nullptr) {
@@ -82,6 +90,11 @@ bool ClassNode::containsMember(std::string member) {
 
 ClassNode* ClassNode::getMemberType(std::string member) {
     if (memberTypes.find(member) == memberTypes.end()) { 
+        
+        if (parent == nullptr) {
+            undefined_member_error(member);
+        }
+
         return parent->getMemberType(member);
     }
     return memberTypes.at(member);
@@ -89,8 +102,15 @@ ClassNode* ClassNode::getMemberType(std::string member) {
 
 uint64_t ClassNode::getMemberPos(std::string member) {
     if (memberPos.find(member) == memberPos.end()) { 
+
+        if (parent == nullptr) {
+            undefined_member_error(member);
+        }
+
         return parent->getMemberPos(member);
     }
+
+
     return memberPos.at(member);
 }
 
