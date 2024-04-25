@@ -890,6 +890,7 @@ void ast_fold(ASTNode* ast) {
 }
 
 
+
 const char* tokenNames[44] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
@@ -934,7 +935,7 @@ const char* tokenNames[44] = {
     "ARRAY_ACCESS",
     "DECLARATION",
     "FUNC_CALL",
-    "BLOCK"
+    "BLOCK",
 };
 
 /*

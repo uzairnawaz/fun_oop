@@ -114,11 +114,21 @@ ClassNode* FunCompiler::determineType(ASTNode* ast) {
     case IDENTIFIER:
         if (ast->identifier == "self") {
             return selfType;
+        } else if (paramTypes.find(ast->identifier) != paramTypes.end() && paramTypes.at(ast->identifier).size() != 0) {
+            std::vector<ClassNode*> typeStack = paramTypes.at(ast->identifier); 
+            return typeStack[typeStack.size() - 1];
         }
         return classNames.at(varTypes.at(ast->identifier));
     case FUNC_CALL:
-        // TODO :)
-        return nullptr;
+        /*
+        Sample code:
+        a = fun (...) -> ([RETURN_TYPE]) {
+            ...
+        }
+
+        Internally, we store the type of 'a' as [RETURN_TYPE]
+        */
+        return determineType(ast->children[0]);
     case ACCESS:
         return determineType(ast->children[0])->getMemberType(ast->children[1]->identifier);
     case ARRAY_ACCESS:
@@ -236,6 +246,8 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             break;
         }
         case FUN: {
+            bool oldInClassDef = inClassDefinition;
+            inClassDefinition = false;
             int labelNum = labelCounter++; 
             print("    b func" + std::to_string(labelNum) + "_end\n");
             print("func" + std::to_string(labelNum) + ":\n");
@@ -247,8 +259,16 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 print("    str x8, [SP, #-16]!\n"); // store the old "it" value on the stack
                 print("    str x" + std::to_string(i) + ", [x9]\n"); // update the value of "it" with x0 (function input)
             }
+            // param types
+            for (int i = 2; i < (int)ast->children.size(); i++) {
+                paramTypes["it" + std::to_string(i - 2)].push_back(classNames.at(ast->children[i]->identifier));
+            } 
 
             compile_ast(ast->children[0]);  
+
+            for (int i = 2; i < (int)ast->children.size(); i++) {
+                paramTypes["it" + std::to_string(i - 2)].pop_back();
+            } 
 
             // default return  
             for (int i = 7; i >= 0; i--) {
@@ -263,6 +283,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
 
             print("func" + std::to_string(labelNum) + "_end:\n");
             print("    ldr x0, =func" + std::to_string(labelNum) + "\n");
+            inClassDefinition = oldInClassDef;
             return;
         }
         case WHILE: { 
