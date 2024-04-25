@@ -442,7 +442,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                     print("    ldr x1, =v_");
                     if (ast->children[0]->type == DECLARATION) {
                         int id_loc = ast->children[0]->children.size() == 2 ? 1 : 2;
-                        print(ast->children[0]->children[id_loc]->identifier));
+                        print(ast->children[0]->children[id_loc]->identifier);
 
                     } else {
                         print(ast->children[0]->identifier);
