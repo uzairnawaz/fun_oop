@@ -9,7 +9,6 @@
 std::unordered_map<std::string, std::string> varTypes;
 std::unordered_map<std::string, ClassNode*> classNames;
 
-
 /*
  Provides an error message for debugging and ends program
 */
