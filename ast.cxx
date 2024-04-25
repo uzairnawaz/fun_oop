@@ -9,6 +9,8 @@
 std::unordered_map<std::string, std::string> varTypes;
 std::unordered_map<std::string, ClassNode*> classNames;
 
+bool isCompilingClass = false;
+
 /*
  Provides an error message for debugging and ends program
 */
@@ -642,7 +644,9 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             bool is_private_object = (*t)[*curToken + 1].type == IDENTIFIER && (*t)[*curToken + 2].type == IDENTIFIER;
             if (is_private_object) {
                 // if the form is [ACCESS] [TYPE] var_name
-                varTypes.insert({(*t)[*curToken + 2].s, (*t)[*curToken + 1].s});
+                if (!isCompilingClass) {
+                    varTypes.insert({(*t)[*curToken + 2].s, (*t)[*curToken + 1].s});
+                }
                 left->type = DECLARATION;
 
                 ASTNode* access = new ASTNode;
@@ -678,7 +682,9 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
                 varName->identifier = (*t)[*curToken + 1].s;
                 
                 *curToken += 1;
-                varTypes.insert({(*t)[*curToken].s, "int"});
+                if (!isCompilingClass) {
+                    varTypes.insert({(*t)[*curToken].s, "int"});
+                }
                 //ASTNode* func_or_int = e2(t, curToken); // handle accesses (ex: abc.def = 4)
                 setThreeChildren(left, type, access, varName);
             }
@@ -701,7 +707,9 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             if ((*t)[*curToken + 1].type == IDENTIFIER) {
                 // if the form is [TYPE] var_name
 
-                varTypes.insert({(*t)[*curToken + 1].s, (*t)[*curToken].s});
+                if (!isCompilingClass) {
+                    varTypes.insert({(*t)[*curToken + 1].s, (*t)[*curToken].s});
+                }
                 left->type = DECLARATION;
                 ASTNode* type = new ASTNode;
                 type->type = IDENTIFIER;
@@ -716,7 +724,9 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
             } else {
                 // the form is var_name = value
                 // implicit type of int
-                varTypes.insert({(*t)[*curToken].s, "int"});
+                if (!isCompilingClass) {
+                    varTypes.insert({(*t)[*curToken].s, "int"});
+                }
                 left = e2(t, curToken); // handle accesses (ex: abc.def = 4)
             }
             if ((*t)[*curToken].type == ASSIGN) {
@@ -754,8 +764,11 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
                 parent->identifier = "Object";
                 *curToken += 2;
             }
+
+            isCompilingClass = true;
             setThreeChildren(out, name, parent, block(t, curToken));
             classNames.insert({name->identifier, new ClassNode(out)});
+            isCompilingClass = false;
             break;
         }
         default:
