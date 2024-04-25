@@ -225,7 +225,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             uint64_t idx = type->getMemberPos(ast->children[1]->identifier);
             int access_type = type->getMemberAccess(ast->children[1]->identifier);
             if (access_type == 2 || (access_type == 1 && !(selfType == type && inClassDefinition))) {
-                print("Private access detected. Compilation rejected.");
+                printf("Private access detected. Compilation rejected.");
                 exit(0);
             }
             compile_ast(ast->children[0]);
@@ -298,7 +298,6 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             if (ast->children[0]->type == FUNC_CALL) { // tail call optimization
                 compile_ast(ast->children[0]->children[0]); // function address stored in x0
                 print("    str x0, [SP, #-16]!\n");
-                compile_ast(ast->children[0]->children[1]); // function input stored in x0
                 print("    ldr x1, [SP], #16\n");
 
                 for (int i = 7; i >= 0; i--) {
@@ -456,13 +455,13 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                         int id_loc = ast->children[0]->children.size() == 2 ? 1 : 2;
                         idx = selfType->getMemberPos(ast->children[0]->children[id_loc]->identifier);
                         if (selfType->getMemberAccess(ast->children[0]->children[id_loc]->identifier) == 2) {
-                            print("Private access detected. Compilation rejected.");
+                            printf("Private access detected. Compilation rejected.");
                             exit(0);
                         }
                     } else {
                         idx = selfType->getMemberPos(ast->children[0]->identifier);
                         if (selfType->getMemberAccess(ast->children[0]->identifier) == 2) {
-                            print("Private access detected. Compilation rejected.");
+                            printf("Private access detected. Compilation rejected.");
                             exit(0);
                         }
                     }
@@ -473,7 +472,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 uint64_t idx = type->getMemberPos(ast->children[0]->children[1]->identifier);
                 int access_type = type->getMemberAccess(ast->children[0]->children[1]->identifier);
                 if (access_type == 2 || (access_type == 1 && !(selfType == type && inClassDefinition))) {
-                    print("Private access detected. Compilation rejected.");
+                    printf("Private access detected. Compilation rejected.");
                     exit(0);
                 }
                 compile_ast(ast->children[0]->children[0]);
@@ -561,7 +560,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 uint64_t idx = type->getMemberPos(ast->children[0]->children[1]->identifier);
                 int access_type = type->getMemberAccess(ast->children[0]->children[1]->identifier);
                 if (access_type == 2 || (access_type == 1 && !(selfType == type && inClassDefinition))) {
-                    print("Private access detected. Compilation rejected.");
+                    printf("Private access detected. Compilation rejected.");
                     exit(0);
                 }
                 compile_ast(ast->children[0]->children[0]);
