@@ -5,7 +5,21 @@ fmt:
     .align 7
 v_argc:
     .quad -1
-v_it:
+v_it0:
+    .quad 0
+v_it1:
+    .quad 0
+v_it2:
+    .quad 0
+v_it3:
+    .quad 0
+v_it4:
+    .quad 0
+v_it5:
+    .quad 0
+v_it6:
+    .quad 0
+v_it7:
     .quad 0
 v_Abc:
     .quad 0
@@ -18,6 +32,8 @@ v_idk2:
 v_idkFunc:
     .quad 0
 v_self:
+    .quad 0
+v_int:
     .quad 0
 v_Animal:
     .quad 0
@@ -52,10 +68,38 @@ class0:
     b func1_end
 func1:
     stp x29, x30, [SP, #-16]!
-    ldr x2, =v_it
-    ldr x1, [x2]
-    str x1, [SP, #-16]!
-    str x0, [x2]
+    ldr x9, =v_it0 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x0, [x9]
+    ldr x9, =v_it1 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x1, [x9]
+    ldr x9, =v_it2 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x2, [x9]
+    ldr x9, =v_it3 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x3, [x9]
+    ldr x9, =v_it4 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x4, [x9]
+    ldr x9, =v_it5 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x5, [x9]
+    ldr x9, =v_it6 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x6, [x9]
+    ldr x9, =v_it7 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x7, [x9]
     mov x0, x10
     ldr x0, [x0, #0]
     str x0, [SP, #-16]!
@@ -65,12 +109,54 @@ func1:
     ldr x0, [SP], #16
     add x0, x0, x1
     ldr x1, [SP], #16
-    ldr x2, =v_it
+    ldr x2, =v_it7
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it6
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it5
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it4
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it3
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it2
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it1
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it0
     str x1, [x2]
     ldp x29, x30, [SP], #16
     ret
     ldr x1, [SP], #16
-    ldr x2, =v_it
+    ldr x2, =v_it7
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it6
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it5
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it4
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it3
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it2
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it1
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it0
     str x1, [x2]
     ldp x29, x30, [SP], #16
     mov x0, #0
@@ -97,10 +183,38 @@ class2:
     b func3_end
 func3:
     stp x29, x30, [SP, #-16]!
-    ldr x2, =v_it
-    ldr x1, [x2]
-    str x1, [SP, #-16]!
-    str x0, [x2]
+    ldr x9, =v_it0 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x0, [x9]
+    ldr x9, =v_it1 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x1, [x9]
+    ldr x9, =v_it2 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x2, [x9]
+    ldr x9, =v_it3 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x3, [x9]
+    ldr x9, =v_it4 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x4, [x9]
+    ldr x9, =v_it5 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x5, [x9]
+    ldr x9, =v_it6 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x6, [x9]
+    ldr x9, =v_it7 
+    ldr x8, [x9]
+    str x8, [SP, #-16]!
+    str x7, [x9]
     mov x0, x10
     ldr x0, [x0, #0]
     str x0, [SP, #-16]!
@@ -110,12 +224,54 @@ func3:
     ldr x0, [SP], #16
     mul x0, x0, x1
     ldr x1, [SP], #16
-    ldr x2, =v_it
+    ldr x2, =v_it7
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it6
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it5
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it4
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it3
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it2
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it1
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it0
     str x1, [x2]
     ldp x29, x30, [SP], #16
     ret
     ldr x1, [SP], #16
-    ldr x2, =v_it
+    ldr x2, =v_it7
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it6
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it5
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it4
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it3
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it2
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it1
+    str x1, [x2]
+    ldr x1, [SP], #16
+    ldr x2, =v_it0
     str x1, [x2]
     ldp x29, x30, [SP], #16
     mov x0, #0
@@ -238,9 +394,8 @@ loop6:
     mov x10, x0
     ldr x0, [x0, #16]
     str x0, [SP, #-16]!
-    ldr x0, =0
-    ldr x1, [SP], #16
-    blr x1
+    ldr x8, [SP], #16
+    blr x8
     ldr x10, [SP], #16
     mov x1, x0
     ldr x0, =fmt
@@ -296,9 +451,8 @@ loop6:
     mov x10, x0
     ldr x0, [x0, #16]
     str x0, [SP, #-16]!
-    ldr x0, =0
-    ldr x1, [SP], #16
-    blr x1
+    ldr x8, [SP], #16
+    blr x8
     ldr x10, [SP], #16
     mov x1, x0
     ldr x0, =fmt
