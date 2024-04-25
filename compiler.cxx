@@ -233,6 +233,8 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             break;
         }
         case FUN: {
+            bool oldInClassDef = inClassDefinition;
+            inClassDefinition = false;
             int labelNum = labelCounter++; 
             print("    b func" + std::to_string(labelNum) + "_end\n");
             print("func" + std::to_string(labelNum) + ":\n");
@@ -260,6 +262,7 @@ void FunCompiler::compile_ast(ASTNode* ast) {
 
             print("func" + std::to_string(labelNum) + "_end:\n");
             print("    ldr x0, =func" + std::to_string(labelNum) + "\n");
+            inClassDefinition = oldInClassDef;
             return;
         }
         case WHILE: { 

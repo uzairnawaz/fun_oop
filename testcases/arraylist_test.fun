@@ -1,4 +1,4 @@
-#include testcases/ArrayList.fun
+#include testcases/lib/ArrayList.joy
 
 ArrayList myArr = new ArrayList()
 
