@@ -25,6 +25,12 @@ private:
     void loadBinaryChildrenReg(ASTNode* ast);
     ClassNode* determineType(ASTNode* ast);
 
+    std::unordered_map<std::string, std::vector<ClassNode*>> paramTypes; // stores types of it1, it2, ...
+    // this is a vector because functions can be declared inside of functions and we need to remember 
+    // types after function declarations
+    
+
+
     void preprocessVars(ASTNode* ast,
         std::unordered_set<std::string>* varNames);
 };
