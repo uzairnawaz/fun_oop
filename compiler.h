@@ -19,6 +19,7 @@ private:
     int labelCounter = 0;
     ClassNode* selfType;
     bool inClassDefinition = false;
+    bool inPrivateClass = false;
 
     void compile_ast(ASTNode* ast);
     void preprocess();
