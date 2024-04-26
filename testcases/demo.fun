@@ -1,22 +1,48 @@
 #include testcases/lib/HashMap.fun
 
-class Dog {
-    paw = 4
+class Person {
+    public listenToTravisScott = fun () -> (int) {
+        printc 103
+        printc 111
+        printc 111
+        printc 115
+        printc 101
+        printc 98
+        printc 117
+        printc 109
+        printc 112
+        printc 115
+        printc 10
+    }
+
+    public listenToTaylorSwift = fun () -> (int) {
+        printc 115
+        printc 104
+        printc 97
+        printc 107
+        printc 101
+        printc 32
+        printc 105
+        printc 116
+        printc 32
+        printc 111
+        printc 102
+        printc 102
+        printc 13
+        printc 10
+    }
 }
 
-Dog a = new Dog()
-Dog b = new Dog()
-
-a.paw = 1
-b.paw = 2
+Person gheith = new Person()
+Person chrill = new Person()
 
 HashMap map = new HashMap()
 map.init()
 
-map.put(104, a)
-map.put(104, b)
-map.put(3, a)
-map.put(1000, b)
+map.put(104, chrill)
+map.put(104, gheith)
+map.put(3, gheith)
+map.put(1000, chrill)
 
-Dog ret = map.get(104)
-print ret.paw
+Person person = map.get(104)
+person.listenToTravisScott()
