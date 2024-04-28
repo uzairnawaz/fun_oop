@@ -330,8 +330,11 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             print("if_end" + std::to_string(labelNum) + ":\n");
             return;
         }
+        case FREE:
+            compile_ast(ast->children[0]);
+            print("    bl fun_free\n");
+            return;
         case PRINT: 
-            print("// print\n");
             compile_ast(ast->children[0]);
             print("    mov x1, x0\n"); // integer to print goes in x1
             print("    ldr x0, =fmt_int\n"); 

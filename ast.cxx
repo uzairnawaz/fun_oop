@@ -86,10 +86,10 @@ bool match(const char* current, std::string token) {
 */
 
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 38;
+    static const int NUM_TOKEN_TYPES = 39;
     static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "[", "]", "class", "extends", "fun", "while", "if", "else", "print", "printc",
         "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ",", ".", "new", "public", "private"};
+        "&", "||", ",", ".", "new", "public", "private", "free"};
     
     std::vector<Token> *tokens = new std::vector<Token>;
     int idx = 0;
@@ -621,6 +621,7 @@ ASTNode* statement(std::vector<Token>* t, uint64_t* curToken) {
         case PRINT:
         case PRINTC:
         case RETURN:
+        case FREE:
             out->type = (*t)[*curToken].type;
             *curToken += 1;
             setChild(out, expression(t, curToken));
@@ -891,7 +892,7 @@ void ast_fold(ASTNode* ast) {
 
 
 
-const char* tokenNames[44] = {
+const char* tokenNames[45] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
@@ -930,6 +931,7 @@ const char* tokenNames[44] = {
     "NEW",
     "PUBLIC",
     "PRIVATE",
+    "FREE",
     "IDENTIFIER",
     "LITERAL",
     "ARRAY_ACCESS",
