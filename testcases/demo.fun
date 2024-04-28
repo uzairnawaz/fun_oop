@@ -1,7 +1,7 @@
 #include testcases/lib/HashMap.fun
 
 class Person {
-    public listenToTravisScott = fun () -> (int) {
+    private listenToTravisScott = fun () -> (int) {
         printc 103
         printc 111
         printc 111
@@ -45,4 +45,4 @@ map.put(3, gheith)
 map.put(1000, chrill)
 
 Person person = map.get(104)
-person.listenToTravisScott()
+person.listenToTaylorSwift()

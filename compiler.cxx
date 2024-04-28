@@ -51,6 +51,8 @@ void FunCompiler::preprocess() {
     print("    .align 7\n");
     print("v_argc:\n");
     print("    .quad -1\n");
+    print("v_self:\n");
+    print("    .quad 0\n");
 
     for (int i = 0; i < 8; i++) {
         print("v_it" + std::to_string(i) + ":\n");
@@ -67,6 +69,7 @@ void FunCompiler::preprocess() {
     varNames.insert("it5");
     varNames.insert("it6");
     varNames.insert("it7");
+    varNames.insert("self");
     
     preprocessVars(astRoot, &varNames);
 
@@ -162,6 +165,10 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             print("    b class" + std::to_string(labelNum) + "_end\n");
             print("class" + std::to_string(labelNum) + ":\n");
             print("    stp x29, x30, [SP, #-16]!\n"); // store frame pointer and link register 
+            print("    ldr x9, =v_self\n");
+            print("    ldr x8, [x9]\n");
+            print("    str x8, [SP, #-16]!\n");
+            print("    str x10, [x9]\n");
             if (selfType->getParent() != 0) {
                 // branch to parent
                 print("    ldr x0, =v_" + ast->children[1]->identifier + "\n");
@@ -169,6 +176,9 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 print("    blr x0\n");
             }
             compile_ast(ast->children[2]);
+            print("    ldr x9, =v_self\n");
+            print("    ldr x8, [SP], #16\n");
+            print("    str x8, [x9]\n");
             print("    ldp x29, x30, [SP], #16\n"); 
             print("    ret\n");
             print("class" + std::to_string(labelNum) + "_end:\n");
@@ -261,6 +271,10 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                 print("    str x8, [SP, #-16]!\n"); // store the old "it" value on the stack
                 print("    str x" + std::to_string(i) + ", [x9]\n"); // update the value of "it" with x0 (function input)
             }
+            print("    ldr x9, =v_self\n");
+            print("    ldr x8, [x9]\n");
+            print("    str x8, [SP, #-16]!\n");
+            print("    str x10, [x9]\n");
             // param types
             for (int i = 2; i < (int)ast->children.size(); i++) {
                 paramTypes["it" + std::to_string(i - 2)].push_back(classNames.at(ast->children[i]->identifier));
@@ -273,6 +287,9 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             } 
 
             // default return  
+            print("    ldr x1, [SP], #16\n");
+            print("    ldr x2, =v_self\n");
+            print("    str x1, [x2]\n");
             for (int i = 7; i >= 0; i--) {
                 print("    ldr x1, [SP], #16\n");
                 print("    ldr x2, =v_it" + std::to_string(i) + "\n");
@@ -328,32 +345,19 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             print("    bl printf\n");
             return;
         case RETURN:
-            if (ast->children[0]->type == FUNC_CALL) { // tail call optimization
-                compile_ast(ast->children[0]->children[0]); // function address stored in x0
-                print("    str x0, [SP, #-16]!\n");
+            compile_ast(ast->children[0]);
+            
+            print("    ldr x2, [SP], #16\n");
+            print("    ldr x3, =v_self\n");
+            print("    str x2, [x3]\n");
+            for (int i = 7; i >= 0; i--) {
                 print("    ldr x1, [SP], #16\n");
-
-                for (int i = 7; i >= 0; i--) {
-                    print("    ldr x2, [SP], #16\n");
-                    print("    ldr x3, =v_it" + std::to_string(i) + "\n");
-                    print("    str x2, [x3]\n");
-                }
-
-                print("    ldp x29, x30, [SP], #16\n");
-
-                print("    br x1\n"); // call function, WITHOUT linking
-            } else {
-                compile_ast(ast->children[0]);
-
-                for (int i = 7; i >= 0; i--) {
-                    print("    ldr x1, [SP], #16\n");
-                    print("    ldr x2, =v_it" + std::to_string(i) + "\n");
-                    print("    str x1, [x2]\n");
-                }
-                
-                print("    ldp x29, x30, [SP], #16\n");
-                print("    ret\n");
+                print("    ldr x2, =v_it" + std::to_string(i) + "\n");
+                print("    str x1, [x2]\n");
             }
+            
+            print("    ldp x29, x30, [SP], #16\n");
+            print("    ret\n");
             return;
         case PLUS:  
             loadBinaryChildrenReg(ast);
@@ -498,6 +502,8 @@ void FunCompiler::compile_ast(ASTNode* ast) {
                             exit(1);
                         }
                     }
+                    print("    ldr x10, =v_self\n");
+                    print("    ldr x10, [x10]\n");
                     print("    str x0, [x10, #" + std::to_string(idx) + "]\n");
                 }
             } else if (ast->children[0]->type == ACCESS) {
@@ -577,12 +583,8 @@ void FunCompiler::compile_ast(ASTNode* ast) {
             print("    lsrv x0, x0, x1");
             return;
         case IDENTIFIER:
-            if (ast->identifier == "self") {
-                print("    mov x0, x10\n");
-            } else {
-                print("    ldr x0, =v_" + ast->identifier + "\n");
-                print("    ldr x0, [x0]\n");
-            }
+            print("    ldr x0, =v_" + ast->identifier + "\n");
+            print("    ldr x0, [x0]\n");
            return;
         case LITERAL:  
             print("    ldr x0, =" + std::to_string(ast->literal) + "\n");
