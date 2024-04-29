@@ -2,32 +2,32 @@
 
 class Person {
     private listenToTravisScott = fun () -> (int) {
-        printc 103
-        printc 111
-        printc 111
-        printc 115
-        printc 101
-        printc 98
-        printc 117
-        printc 109
-        printc 112
-        printc 115
+        printc 'g'
+        printc 'o'
+        printc 'o'
+        printc 's'
+        printc 'e'
+        printc 'b'
+        printc 'u'
+        printc 'm'
+        printc 'p'
+        printc 's'
         printc 10
     }
 
     public listenToTaylorSwift = fun () -> (int) {
-        printc 115
-        printc 104
-        printc 97
-        printc 107
-        printc 101
+        printc 's'
+        printc 'h'
+        printc 'a'
+        printc 'k'
+        printc 'e'
         printc 32
-        printc 105
-        printc 116
+        printc 'i'
+        printc 't'
         printc 32
-        printc 111
-        printc 102
-        printc 102
+        printc 'o'
+        printc 'f'
+        printc 'f'
         printc 13
         printc 10
     }

@@ -47,6 +47,8 @@ typedef enum {
     PUBLIC,
     PRIVATE,
     FREE,
+    CHAR_QUOTE,
+    UNDEFINED_TOKEN,
     IDENTIFIER,
     LITERAL,
     ARRAY_ACCESS,
@@ -87,4 +89,4 @@ ASTNode* expression(std::vector<Token>* t, uint64_t* curToken);
 ASTNode* block(std::vector<Token>* t, uint64_t* curToken);
 ASTNode* statement(std::vector<Token>* t, uint64_t* curToken);
 
-extern const char* tokenNames[45];
+extern const char* tokenNames[47];
