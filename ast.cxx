@@ -86,10 +86,10 @@ bool match(const char* current, std::string token) {
 */
 
 std::vector<Token>* tokenize(const char* program) {
-    static const int NUM_TOKEN_TYPES = 39;
+    static const int NUM_TOKEN_TYPES = 41;
     static const std::string TOKENS[NUM_TOKEN_TYPES] = {"(", ")", "{", "}", "[", "]", "class", "extends", "fun", "while", "if", "else", "print", "printc",
         "return", "->", "+", "-", "*", "/", "%", "<<", ">>", "<=", ">=", "<", ">", "==", "!=", "=", "&&",
-        "&", "||", ",", ".", "new", "public", "private", "free"};
+        "&", "||", ",", ".", "new", "public", "private", "free", "'", "UNDEFINED_TOKEN"};
     
     std::vector<Token> *tokens = new std::vector<Token>;
     int idx = 0;
@@ -114,8 +114,13 @@ std::vector<Token>* tokenize(const char* program) {
         for (int i = 0; i < NUM_TOKEN_TYPES; i++) {
 
             if (match(program, TOKENS[i])) {
-    
-                tokens->push_back({(ASTType)i, "", 0});
+
+                if (TOKENS[i] == "'") {
+                    tokens->push_back({(ASTType)i, "", (uint64_t)program});
+                } else {
+                    tokens->push_back({(ASTType)i, "", 0});
+                }
+
                 idx++;
                 program += TOKENS[i].length();
                 foundToken = true;
@@ -188,7 +193,14 @@ std::vector<Token>* tokenize(const char* program) {
 
                 if ((*tokens)[idx].s.length() == 0) {
                     (*tokens).pop_back();
-                    (*tokens).push_back({LITERAL, "", consume_literal(&program)});
+
+                    if (!isdigit(*program)) {
+                        // fill up undefined chars as undefined tokens -- 1 for each undefined char
+                        (*tokens).push_back({UNDEFINED_TOKEN, "", 0});
+                        program += 1;
+                    } else {
+                        (*tokens).push_back({LITERAL, "", consume_literal(&program)});
+                    }
                 }
                 idx++;
             }
@@ -255,6 +267,18 @@ void setThreeChildren(ASTNode* n, ASTNode* c1, ASTNode* c2, ASTNode* c3) {
 ASTNode* e1(std::vector<Token>* t, uint64_t* curToken) {
     ASTNode* out = new ASTNode;
     switch ((*t)[*curToken].type) {
+        case CHAR_QUOTE: {
+            char* programPtr = (char*) (*t)[*curToken].literal;
+            *curToken += 1;
+            *curToken += 1;
+
+            if ((*t)[*curToken].type != CHAR_QUOTE) {
+                syntax_error((*t)[*curToken], curToken, "a char of length 1");
+            }
+            out->type = LITERAL;
+            out->literal = static_cast<int>(*(programPtr + 1));
+            break;
+        }
         case FUN:
             out->type = FUN;
             *curToken += 1;
@@ -892,7 +916,7 @@ void ast_fold(ASTNode* ast) {
 
 
 
-const char* tokenNames[45] = {
+const char* tokenNames[47] = {
     "OPEN_PAREN",
     "CLOSE_PAREN",
     "OPEN_CURLY",
@@ -932,6 +956,8 @@ const char* tokenNames[45] = {
     "PUBLIC",
     "PRIVATE",
     "FREE",
+    "CHAR_QUOTE",
+    "UNDEFINED_TOKEN",
     "IDENTIFIER",
     "LITERAL",
     "ARRAY_ACCESS",
